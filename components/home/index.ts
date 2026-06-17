@@ -1,0 +1,10 @@
+export { HeroSection } from "./hero-section";
+export { AISearchSection } from "./ai-search-bar";
+export { FeaturedProjectsSection } from "./featured-projects-section";
+export { LocalityDiscoverySection } from "./locality-discovery-section";
+export { AIInsightsSection } from "./ai-insights-section";
+export { BuilderShowcaseSection } from "./builder-showcase-section";
+export { AIComparisonSection } from "./ai-comparison-section";
+export { InvestmentIntelligenceSection } from "./investment-intelligence-section";
+export { WhyPropAISection } from "./why-propai-section";
+export { CTASection } from "./cta-section";

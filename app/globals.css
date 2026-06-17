@@ -1,0 +1,115 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fafafa;
+  --foreground: #0a0a0a;
+  --muted: #737373;
+  --muted-foreground: #a3a3a3;
+  --border: rgba(0, 0, 0, 0.08);
+  --card: #ffffff;
+  --accent: #c9a962;
+  --accent-muted: rgba(201, 169, 98, 0.12);
+  --surface-dark: #0a0a0a;
+  --surface-elevated: #111111;
+  --glass: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.18);
+  --gradient-luxury: linear-gradient(
+    135deg,
+    #0a0a0a 0%,
+    #1a1a1a 50%,
+    #0f0f0f 100%
+  );
+  --gradient-champagne: linear-gradient(
+    135deg,
+    rgba(201, 169, 98, 0.08) 0%,
+    rgba(201, 169, 98, 0.02) 100%
+  );
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-card: var(--card);
+  --color-accent: var(--accent);
+  --color-accent-muted: var(--accent-muted);
+  --color-surface-dark: var(--surface-dark);
+  --color-surface-elevated: var(--surface-elevated);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-display: var(--font-geist-sans);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: rgba(201, 169, 98, 0.25);
+  color: var(--foreground);
+}
+
+.glass-panel {
+  background: var(--glass);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--glass-border);
+}
+
+.luxury-gradient {
+  background: var(--gradient-luxury);
+}
+
+.champagne-glow {
+  background: var(--gradient-champagne);
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+
+.section-padding {
+  padding-inline: clamp(1.5rem, 5vw, 4rem);
+  padding-block: clamp(5rem, 12vw, 9rem);
+}
+
+.container-premium {
+  width: 100%;
+  max-width: 1400px;
+  margin-inline: auto;
+  padding-inline: clamp(1.5rem, 5vw, 4rem);
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(201, 169, 98, 0.08) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 3s ease-in-out infinite;
+}
