@@ -1,3 +1,4 @@
+// Homepage UI types (static data layer — do not conflate with DB models)
 export interface Project {
   id: string;
   slug: string;
@@ -72,3 +73,19 @@ export interface WhyPropAI {
   title: string;
   description: string;
 }
+
+// Database model types
+export type {
+  Timestamps,
+  PriceRange,
+  GeoCoordinates,
+  AreaRange,
+  IBuilder,
+  ILocation,
+  IConfiguration,
+  IAmenity,
+  IFAQ,
+  IImage,
+  IProject,
+  ILead,
+} from "@/types/models";

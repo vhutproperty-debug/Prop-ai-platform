@@ -18,3 +18,34 @@ export function formatPrice(amount: number): string {
 export function formatPercent(value: number): string {
   return `${value > 0 ? "+" : ""}${value.toFixed(1)}%`;
 }
+
+export function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/[\s_]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+export function toObjectIdString(id: unknown): string {
+  if (!id) return "";
+  return String(id);
+}
+
+export function formatPriceRange(range: {
+  min: number;
+  max: number;
+  currency?: string;
+}): string {
+  const currency = range.currency ?? "INR";
+  if (currency === "INR") {
+    return `${formatPrice(range.min)} — ${formatPrice(range.max)}`;
+  }
+  return `${range.min.toLocaleString()} — ${range.max.toLocaleString()} ${currency}`;
+}
+
+export function isValidObjectId(id: string): boolean {
+  return /^[0-9a-fA-F]{24}$/.test(id);
+}

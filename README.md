@@ -1,36 +1,84 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Prop AI
 
-## Getting Started
+Mumbai's AI-first real estate operating system. Intelligence, not listings.
 
-First, run the development server:
+## Tech Stack
+
+- **Next.js 16** (App Router)
+- **TypeScript**
+- **Tailwind CSS v4**
+- **Shadcn UI** primitives
+- **MongoDB + Mongoose**
+- **Server Actions**
+- **Zod** validation
+- **JWT** authentication
+- **Cloudinary** media
+- **Framer Motion** animations
+
+## Quick Start
 
 ```bash
+# Install dependencies
+npm install
+
+# Configure environment
+cp .env.example .env.local
+
+# Seed database (optional)
+npm run seed
+
+# Start development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+app/           Routes, API, admin
+actions/       Server Actions
+services/      Business logic
+models/        Mongoose schemas
+validations/   Zod schemas
+components/    UI components
+docs/          Documentation
+scripts/       Database seed
+```
 
-## Learn More
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for full architecture.
 
-To learn more about Next.js, take a look at the following resources:
+## Scripts
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Development server (webpack) |
+| `npm run dev:turbo` | Development server (Turbopack) |
+| `npm run build` | Production build |
+| `npm run start` | Production server |
+| `npm run lint` | ESLint |
+| `npm run seed` | Seed MongoDB with sample data |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## API & Admin
 
-## Deploy on Vercel
+- **Health**: `GET /api/health`
+- **API docs**: [docs/API.md](docs/API.md)
+- **Admin CRM**: `/admin/leads` (requires admin/agent login)
+- **Login**: `/login`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Deployment
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for Vercel deployment guide.
+
+## Phase 1 Scope
+
+- Premium homepage (11 sections)
+- Static data with MongoDB fallback
+- Project, locality, builder detail pages
+- AI search architecture (keyword + embedding-ready)
+- Lead capture + CRM admin
+- JWT-ready authentication
+
+## License
+
+Private — Prop AI

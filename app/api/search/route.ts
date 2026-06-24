@@ -1,33 +1,17 @@
-import { NextResponse } from "next/server";
-import { searchSuggestions } from "@/data/homepage";
+import { apiError, apiSuccess } from "@/lib/api/response";
+import { searchAction } from "@/actions/search";
 
 export async function POST(request: Request) {
   try {
-    const { query } = await request.json();
+    const body = await request.json();
+    const result = await searchAction(body);
 
-    if (!query || typeof query !== "string") {
-      return NextResponse.json(
-        { success: false, error: "Query is required" },
-        { status: 400 }
-      );
+    if (!result.success) {
+      return apiError(new Error(result.error));
     }
 
-    const results = searchSuggestions.filter((s) =>
-      s.text.toLowerCase().includes(query.toLowerCase())
-    );
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        query,
-        results,
-        aiResponse: `Based on your search for "${query}", I found ${results.length} relevant suggestions. Full AI search will be available in Phase 2.`,
-      },
-    });
-  } catch {
-    return NextResponse.json(
-      { success: false, error: "Invalid request" },
-      { status: 400 }
-    );
+    return apiSuccess(result.data);
+  } catch (error) {
+    return apiError(error);
   }
 }

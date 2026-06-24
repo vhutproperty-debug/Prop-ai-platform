@@ -1,19 +1,11 @@
-import { NextResponse } from "next/server";
-import { builders } from "@/data/homepage";
-import { connectDB } from "@/lib/db/mongodb";
-import { Builder } from "@/models/Builder";
+import { apiError, apiSuccess } from "@/lib/api/response";
+import { builderService } from "@/services/catalog.service";
 
 export async function GET() {
   try {
-    await connectDB();
-    const dbBuilders = await Builder.find().sort({ rating: -1 }).lean();
-
-    if (dbBuilders.length > 0) {
-      return NextResponse.json({ success: true, data: dbBuilders });
-    }
-  } catch {
-    // Fall back to static data when DB is unavailable
+    const result = await builderService.list();
+    return apiSuccess(result);
+  } catch (error) {
+    return apiError(error);
   }
-
-  return NextResponse.json({ success: true, data: builders, source: "static" });
 }
