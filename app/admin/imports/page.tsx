@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { isDbConfigured } from "@/config/env";
 import { ImportUploadForm } from "@/components/admin/import-upload-form";
+import { FirecrawlImportForm } from "@/components/admin/firecrawl-import-form";
+import { ImportMetrics } from "@/components/admin/import-metrics";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -12,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { importReviewService } from "@/services/import-review.service";
+import { reviewService } from "@/services/review/review.service";
 
 export default async function AdminImportsPage() {
   if (!isDbConfigured) {
@@ -27,16 +30,31 @@ export default async function AdminImportsPage() {
     );
   }
 
-  const { items: jobs } = await importReviewService.listJobs(1, 50);
+  const [{ items: jobs }, metrics] = await Promise.all([
+    importReviewService.listJobs(1, 50),
+    reviewService.getMetrics(),
+  ]);
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight">Data Ingestion</h1>
-        <p className="mt-1 text-sm text-muted">
-          Copyright-safe structured import pipeline with admin review before publishing.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight">Data Ingestion</h1>
+          <p className="mt-1 text-sm text-muted">
+            Firecrawl-powered builder imports with admin review before publishing.
+          </p>
+        </div>
+        <Link
+          href="/admin/imports/review"
+          className="rounded-full border border-border px-4 py-2 text-sm hover:bg-muted/10"
+        >
+          Review Queue ({metrics.pendingReviews})
+        </Link>
       </div>
+
+      <ImportMetrics metrics={metrics} />
+
+      <FirecrawlImportForm />
 
       <ImportUploadForm />
 
@@ -45,10 +63,11 @@ export default async function AdminImportsPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Source</TableHead>
+              <TableHead>Builder</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Records</TableHead>
-              <TableHead>Duplicates</TableHead>
-              <TableHead>Published</TableHead>
+              <TableHead>Imported</TableHead>
+              <TableHead>Updated</TableHead>
+              <TableHead>Failures</TableHead>
               <TableHead>Created</TableHead>
               <TableHead />
             </TableRow>
@@ -56,7 +75,7 @@ export default async function AdminImportsPage() {
           <TableBody>
             {jobs.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted">
+                <TableCell colSpan={8} className="text-center text-muted">
                   No import jobs yet.
                 </TableCell>
               </TableRow>
@@ -64,12 +83,13 @@ export default async function AdminImportsPage() {
               jobs.map((job) => (
                 <TableRow key={String(job._id)}>
                   <TableCell className="font-medium">{job.source}</TableCell>
+                  <TableCell>{job.builder ?? "—"}</TableCell>
                   <TableCell>
                     <Badge variant="outline">{job.status}</Badge>
                   </TableCell>
-                  <TableCell>{job.recordCount}</TableCell>
-                  <TableCell>{job.duplicateCount}</TableCell>
-                  <TableCell>{job.publishedCount}</TableCell>
+                  <TableCell>{job.projectsImported ?? job.recordCount}</TableCell>
+                  <TableCell>{job.projectsUpdated ?? 0}</TableCell>
+                  <TableCell>{job.errorCount}</TableCell>
                   <TableCell className="text-xs text-muted">
                     {new Date(job.createdAt).toLocaleString("en-IN")}
                   </TableCell>

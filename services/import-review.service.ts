@@ -1,6 +1,6 @@
 import { withDatabase } from "@/lib/db/with-database";
 import { NotFoundError } from "@/lib/errors";
-import { publishBundle } from "@/lib/importers/publisher";
+import { publishBundle } from "@/services/publishing/publishing.service";
 import { createJobLogger } from "@/lib/ingestion/logger";
 import { ImportJob } from "@/models/ImportJob";
 import { ImportRecord } from "@/models/ImportRecord";
@@ -87,9 +87,19 @@ export const importReviewService = {
       String(record.jobId)
     );
 
+    const isUpdate =
+      record.recordType === "update" || record.status === "update";
+
     const projectId = await publishBundle(
       record.stagedData as NormalizedImportBundle,
-      logger
+      logger,
+      {
+        existingProjectId: record.existingProjectId
+          ? String(record.existingProjectId)
+          : undefined,
+        isUpdate,
+        publishActive: true,
+      }
     );
 
     const updated = await withDatabase(() =>
@@ -118,13 +128,13 @@ export const importReviewService = {
     const skip = (page - 1) * limit;
     const [items, total] = await withDatabase(() =>
       Promise.all([
-        ImportRecord.find({ status: { $in: ["staged", "duplicate", "approved"] } })
+        ImportRecord.find({ status: { $in: ["staged", "duplicate", "update", "conflict", "approved"] } })
           .sort({ createdAt: -1 })
           .skip(skip)
           .limit(limit)
           .lean(),
         ImportRecord.countDocuments({
-          status: { $in: ["staged", "duplicate", "approved"] },
+          status: { $in: ["staged", "duplicate", "update", "conflict", "approved"] },
         }),
       ])
     );

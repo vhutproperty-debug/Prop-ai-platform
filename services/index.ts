@@ -6,3 +6,8 @@ export { embeddingService } from "./embedding.service";
 export { cloudinaryService } from "./cloudinary.service";
 export { ingestionService } from "./ingestion.service";
 export { importReviewService } from "./import-review.service";
+export { firecrawlService } from "./firecrawl/firecrawl.service";
+export { importJobsService } from "./import-jobs/import-jobs.service";
+export { reviewService } from "./review/review.service";
+export { publishingService } from "./publishing/publishing.service";
+export { deduplicationService } from "./deduplication/deduplication.service";

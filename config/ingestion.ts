@@ -1,5 +1,6 @@
 export const IMPORT_SOURCES = [
   "builder_website",
+  "firecrawl",
   "pdf_brochure",
   "manual",
   "csv",
@@ -8,6 +9,7 @@ export type ImportSource = (typeof IMPORT_SOURCES)[number];
 
 export const IMPORT_JOB_STATUSES = [
   "queued",
+  "running",
   "extracting",
   "normalizing",
   "validating",
@@ -16,6 +18,7 @@ export const IMPORT_JOB_STATUSES = [
   "rejected",
   "publishing",
   "published",
+  "completed",
   "failed",
 ] as const;
 export type ImportJobStatus = (typeof IMPORT_JOB_STATUSES)[number];
@@ -23,11 +26,21 @@ export type ImportJobStatus = (typeof IMPORT_JOB_STATUSES)[number];
 export const IMPORT_RECORD_STATUSES = [
   "staged",
   "duplicate",
+  "update",
+  "conflict",
   "invalid",
   "approved",
   "rejected",
   "published",
 ] as const;
+
+export const IMPORT_RECORD_TYPES = [
+  "new",
+  "update",
+  "duplicate",
+  "conflict",
+] as const;
+export type ImportRecordType = (typeof IMPORT_RECORD_TYPES)[number];
 export type ImportRecordStatus = (typeof IMPORT_RECORD_STATUSES)[number];
 
 export const IMPORT_ENTITY_TYPES = [

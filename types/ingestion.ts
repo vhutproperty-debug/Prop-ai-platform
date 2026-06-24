@@ -8,6 +8,7 @@ import type {
 
 export type { ImportSource };
 import type { PriceRange } from "@/types/models";
+import type { ImportExtensions } from "@/types/firecrawl-import";
 
 export interface IngestionLogEntry {
   level: "info" | "warn" | "error";
@@ -32,6 +33,8 @@ export interface StagedConfiguration {
   bhk?: number;
   priceRange: PriceRange;
   carpetArea?: { min: number; max: number; unit?: "sqft" | "sqm" };
+  floorPlanImage?: string;
+  floorPlanPdf?: string;
 }
 
 export interface StagedGalleryImage {
@@ -92,6 +95,7 @@ export interface NormalizedImportBundle {
     copyrightSafe: true;
     fieldsExtracted: string[];
   };
+  extensions?: ImportExtensions;
 }
 
 export interface ImportJobSummary {
@@ -112,12 +116,14 @@ export interface ImportRecordSummary {
   jobId: string;
   entityType: ImportEntityType;
   status: ImportRecordStatus;
+  recordType?: import("@/config/ingestion").ImportRecordType;
   slug: string;
   displayName: string;
   duplicates: DuplicateMatch[];
   validationErrors: string[];
   stagedData: NormalizedImportBundle;
   publishedId?: string;
+  existingProjectId?: string;
   reviewedBy?: string;
   reviewedAt?: Date;
   createdAt: Date;

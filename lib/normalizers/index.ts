@@ -5,7 +5,9 @@ import { normalizeWebsiteFacts } from "@/lib/normalizers/website.normalizer";
 import { normalizePdfFacts } from "@/lib/normalizers/pdf.normalizer";
 import { normalizeManualImport } from "@/lib/normalizers/manual.normalizer";
 import { normalizeCsvGroup } from "@/lib/normalizers/csv.normalizer";
+import { normalizeFirecrawlFacts } from "@/lib/normalizers/firecrawl.normalizer";
 import type { CsvImportRow, ManualImportInput, WebsiteFactsInput } from "@/validations/ingestion";
+import type { ExtractedProjectFacts } from "@/types/firecrawl-import";
 import { stagedBundleSchema } from "@/validations/ingestion-bundle";
 
 export function normalizeExtractedData(
@@ -32,6 +34,9 @@ export function normalizeExtractedData(
       );
       break;
     }
+    case "firecrawl":
+      bundles = [normalizeFirecrawlFacts(raw as ExtractedProjectFacts, source, logger)];
+      break;
     default:
       throw new Error(`Unsupported source for normalization: ${source}`);
   }

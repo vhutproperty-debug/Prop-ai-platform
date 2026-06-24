@@ -130,7 +130,7 @@ export function ImportReviewPanel({ records }: { records: ImportRecordRow[] }) {
             )}
 
             <div className="flex flex-wrap gap-2">
-              {record.status === "staged" || record.status === "duplicate" ? (
+              {["staged", "update", "duplicate", "conflict"].includes(record.status) ? (
                 <>
                   <Button
                     size="sm"

@@ -8,6 +8,7 @@ export { Lead } from "./Lead";
 export { Image } from "./Image";
 export { ImportJob } from "./ImportJob";
 export { ImportRecord } from "./ImportRecord";
+export { ImportLog } from "./ImportLog";
 
 export { SiteSettings } from "./SiteSettings";
 

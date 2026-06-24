@@ -6,6 +6,7 @@ import {
   Image,
   ImportJob,
   ImportRecord,
+  ImportLog,
   Lead,
   Location,
   Project,
@@ -28,6 +29,7 @@ export async function ensureIndexes(): Promise<void> {
     Image.syncIndexes(),
     ImportJob.syncIndexes(),
     ImportRecord.syncIndexes(),
+    ImportLog.syncIndexes(),
     SiteSettings.syncIndexes(),
   ]);
 }
@@ -82,6 +84,12 @@ export const INDEX_DOCUMENTATION = {
     "jobId + status",
     "slug + status",
     "status + createdAt",
+    "recordType + status + createdAt",
     "stagedData.project.reraNumber (sparse)",
+  ],
+  ImportLog: [
+    "jobId + level + createdAt",
+    "projectSlug + createdAt",
+    "createdAt",
   ],
 } as const;

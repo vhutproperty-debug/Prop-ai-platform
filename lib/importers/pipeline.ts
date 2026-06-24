@@ -4,7 +4,8 @@ import { getExtractor } from "@/lib/extractors";
 import { normalizeExtractedData } from "@/lib/normalizers";
 import {
   detectDuplicates,
-  hasBlockingDuplicate,
+  resolveRecordStatus,
+  classifyRecord,
 } from "@/lib/importers/duplicate-detector";
 import { createJobLogger } from "@/lib/ingestion/logger";
 import { withDatabase } from "@/lib/db/with-database";
@@ -67,18 +68,22 @@ export async function runIngestionPipeline(
 
     for (const bundle of bundles) {
       const duplicates = await detectDuplicates(bundle);
-      const isDuplicate = hasBlockingDuplicate(duplicates);
-      if (duplicates.length) duplicatesFound += duplicates.length;
+      const classification = classifyRecord(duplicates);
+      const status = resolveRecordStatus(classification.recordType);
+      if (classification.recordType === "update") duplicatesFound += 1;
+      else if (duplicates.length) duplicatesFound += duplicates.length;
 
       const record = await withDatabase(() =>
         ImportRecord.create({
           jobId: job._id,
           entityType: "project",
-          status: isDuplicate ? "duplicate" : "staged",
+          status,
+          recordType: classification.recordType,
           slug: bundle.project.slug,
           displayName: bundle.project.projectName,
           stagedData: bundle,
           duplicates,
+          existingProjectId: classification.existingProjectId,
           validationErrors: [],
         })
       );
@@ -87,7 +92,7 @@ export async function runIngestionPipeline(
       logger.info("Import record staged", {
         recordId: String(record._id),
         slug: bundle.project.slug,
-        duplicate: isDuplicate,
+        recordType: classification.recordType,
       });
     }
 

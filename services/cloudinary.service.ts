@@ -12,12 +12,20 @@ if (isCloudinaryConfigured) {
 export const cloudinaryService = {
   isConfigured: isCloudinaryConfigured,
 
-  async uploadImage(file: string, folder = "propai") {
+  async uploadImage(file: string, folder = "propai", publicId?: string) {
     if (!isCloudinaryConfigured) {
       throw new Error("Cloudinary is not configured");
     }
 
-    const result = await cloudinary.uploader.upload(file, { folder });
+    const options: { folder: string; public_id?: string; overwrite?: boolean } = {
+      folder,
+    };
+    if (publicId) {
+      options.public_id = publicId;
+      options.overwrite = false;
+    }
+
+    const result = await cloudinary.uploader.upload(file, options);
     return {
       url: result.secure_url,
       publicId: result.public_id,

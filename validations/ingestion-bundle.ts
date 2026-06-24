@@ -14,10 +14,12 @@ const stagedConfigurationSchema = z.object({
       unit: z.enum(["sqft", "sqm"]).optional(),
     })
     .optional(),
+  floorPlanImage: z.string().url().optional(),
+  floorPlanPdf: z.string().url().optional(),
 });
 
 export const stagedBundleSchema = z.object({
-  source: z.enum(["builder_website", "pdf_brochure", "manual", "csv"]),
+  source: z.enum(["builder_website", "firecrawl", "pdf_brochure", "manual", "csv"]),
   builder: z
     .object({
       name: z.string().min(2),

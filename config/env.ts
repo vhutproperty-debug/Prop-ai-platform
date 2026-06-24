@@ -12,6 +12,7 @@ const envSchema = z.object({
   OPENAI_API_KEY: z.string().optional(),
   NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
   CRM_WEBHOOK_URL: z.string().url().optional(),
+  FIRECRAWL_API_KEY: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -38,6 +39,7 @@ function parseEnv(): Env {
     CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     CRM_WEBHOOK_URL: process.env.CRM_WEBHOOK_URL,
+    FIRECRAWL_API_KEY: process.env.FIRECRAWL_API_KEY,
   });
 }
 
@@ -57,3 +59,4 @@ export const isCloudinaryConfigured = Boolean(
   env.CLOUDINARY_CLOUD_NAME && env.CLOUDINARY_API_KEY && env.CLOUDINARY_API_SECRET
 );
 export const isAiConfigured = Boolean(env.OPENAI_API_KEY);
+export const isFirecrawlConfigured = Boolean(env.FIRECRAWL_API_KEY);
