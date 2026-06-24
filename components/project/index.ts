@@ -1,0 +1,11 @@
+export { HeroSection } from "@/components/project/hero-section";
+export { OverviewSection } from "@/components/project/overview-section";
+export { ConfigurationSection } from "@/components/project/configuration-section";
+export { AmenitiesSection } from "@/components/project/amenities-section";
+export { GallerySection } from "@/components/project/gallery-section";
+export { LocationSection } from "@/components/project/location-section";
+export { FaqSection } from "@/components/project/faq-section";
+export { BrochureSection } from "@/components/project/brochure-section";
+export { LeadCaptureSection } from "@/components/project/lead-capture-section";
+export { ProjectJsonLd } from "@/components/project/project-json-ld";
+export { SectionHeader } from "@/components/project/section-header";

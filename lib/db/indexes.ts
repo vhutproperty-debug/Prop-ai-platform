@@ -4,6 +4,8 @@ import {
   Configuration,
   FAQ,
   Image,
+  ImportJob,
+  ImportRecord,
   Lead,
   Location,
   Project,
@@ -23,6 +25,8 @@ export async function ensureIndexes(): Promise<void> {
     Location.syncIndexes(),
     Lead.syncIndexes(),
     Image.syncIndexes(),
+    ImportJob.syncIndexes(),
+    ImportRecord.syncIndexes(),
   ]);
 }
 
@@ -67,5 +71,12 @@ export const INDEX_DOCUMENTATION = {
   Image: [
     "entityType + entityId + type + order",
     "publicId (unique sparse)",
+  ],
+  ImportJob: ["source + createdAt", "status + createdAt", "createdBy + createdAt"],
+  ImportRecord: [
+    "jobId + status",
+    "slug + status",
+    "status + createdAt",
+    "stagedData.project.reraNumber (sparse)",
   ],
 } as const;

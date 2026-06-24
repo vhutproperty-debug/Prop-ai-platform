@@ -16,6 +16,9 @@ export default function AdminLayout({
             <Link href="/admin/leads" className="hover:text-foreground">
               Leads
             </Link>
+            <Link href="/admin/imports" className="hover:text-foreground">
+              Imports
+            </Link>
             <Link href="/" className="hover:text-foreground">
               View Site
             </Link>

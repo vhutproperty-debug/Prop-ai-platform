@@ -6,6 +6,8 @@ export { FAQ } from "./FAQ";
 export { Location } from "./Location";
 export { Lead } from "./Lead";
 export { Image } from "./Image";
+export { ImportJob } from "./ImportJob";
+export { ImportRecord } from "./ImportRecord";
 
 // Legacy models — retained for backward compatibility
 export { Locality } from "./Locality";
