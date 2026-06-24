@@ -97,6 +97,7 @@ export default async function ProjectPage({ params }: PageProps) {
           />
           <LeadCaptureSection
             projectId={project.id}
+            projectSlug={project.slug}
             builderId={project.builder?.id}
             locationId={project.location?.id}
             projectName={project.projectName}

@@ -24,7 +24,7 @@ export async function POST(request: Request) {
 
     if (!isDbConfigured) {
       return apiSuccess(
-        { ...input, status: "NEW", message: "Lead captured (DB unavailable)" },
+        { ...input, status: "new", message: "Lead captured (DB unavailable)" },
         201
       );
     }

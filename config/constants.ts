@@ -13,6 +13,31 @@ export const PROJECT_STATUSES = [
 export type ProjectStatus = (typeof PROJECT_STATUSES)[number];
 
 export const LEAD_SOURCES = [
+  "homepage",
+  "project_page",
+  "ai_assistant",
+  "whatsapp",
+  "manual",
+  "referral",
+] as const;
+export type LeadSource = (typeof LEAD_SOURCES)[number];
+
+export const LEAD_STATUSES = [
+  "new",
+  "contacted",
+  "qualified",
+  "site_visit",
+  "negotiation",
+  "won",
+  "lost",
+] as const;
+export type LeadStatus = (typeof LEAD_STATUSES)[number];
+
+export const LEAD_SCORES = ["hot", "warm", "cold"] as const;
+export type LeadScore = (typeof LEAD_SCORES)[number];
+
+/** @deprecated Legacy source values mapped at ingestion time */
+export const LEGACY_LEAD_SOURCES = [
   "website",
   "ai-search",
   "project-page",
@@ -20,18 +45,6 @@ export const LEAD_SOURCES = [
   "referral",
   "partner",
 ] as const;
-export type LeadSource = (typeof LEAD_SOURCES)[number];
-
-export const LEAD_STATUSES = [
-  "NEW",
-  "CONTACTED",
-  "SITE_VISIT",
-  "QUOTATION_SENT",
-  "NEGOTIATION",
-  "WON",
-  "LOST",
-] as const;
-export type LeadStatus = (typeof LEAD_STATUSES)[number];
 
 export const EMBEDDING_ENTITY_TYPES = ["project", "locality", "builder"] as const;
 export type EmbeddingEntityType = (typeof EMBEDDING_ENTITY_TYPES)[number];

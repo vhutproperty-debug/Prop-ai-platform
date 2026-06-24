@@ -64,11 +64,14 @@ export const INDEX_DOCUMENTATION = {
     "text: name, microMarket, description",
   ],
   Lead: [
-    "email, phone, status, source",
-    "status + createdAt",
-    "projectId + status",
+    "email, phone, status, source, score",
+    "status + score + createdAt",
+    "source + status + createdAt",
     "assignedTo + status + createdAt",
-    "text: name, email, phone, query",
+    "projectId + status + createdAt",
+    "projectSlug + createdAt",
+    "createdAt",
+    "text: name, email, phone, configuration, purpose, projectSlug, query",
   ],
   Image: [
     "entityType + entityId + type + order",

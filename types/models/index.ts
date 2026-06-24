@@ -1,6 +1,7 @@
 import type { Types } from "mongoose";
 import type { AmenityCategory } from "@/config/model-constants";
-import type { LeadSource, LeadStatus } from "@/config/constants";
+import type { LeadScore, LeadSource, LeadStatus } from "@/config/constants";
+import type { LeadActivity, LeadIntegrations, LeadNote } from "@/types/lead";
 
 export interface Timestamps {
   createdAt: Date;
@@ -149,12 +150,20 @@ export interface ILead extends Timestamps {
   phone: string;
   source: LeadSource;
   projectId?: Types.ObjectId | string;
+  projectSlug?: string;
   builderId?: Types.ObjectId | string;
   locationId?: Types.ObjectId | string;
-  query?: string;
   budget?: PriceRange;
+  configuration?: string;
+  timeline?: string;
+  purpose?: string;
+  query?: string;
   status: LeadStatus;
+  score: LeadScore;
   assignedTo?: Types.ObjectId | string;
-  notes: string[];
+  assignedToName?: string;
+  notes: LeadNote[];
+  activities: LeadActivity[];
+  integrations?: LeadIntegrations;
   aiAnswers?: Record<string, string>;
 }

@@ -7,7 +7,7 @@ import {
   IMAGE_TYPES,
   LOCATION_TYPES,
 } from "@/config/model-constants";
-import { LEAD_SOURCES, LEAD_STATUSES, PROJECT_STATUSES } from "@/config/constants";
+import { LEAD_SCORES, LEAD_SOURCES, LEAD_STATUSES, PROJECT_STATUSES } from "@/config/constants";
 import { emailSchema, phoneSchema, slugSchema } from "@/validations/common";
 
 export const priceRangeSchema = z
@@ -149,13 +149,18 @@ export const leadModelSchema = z.object({
   name: z.string().min(2).max(100),
   email: emailSchema,
   phone: phoneSchema,
-  source: z.enum(LEAD_SOURCES).default("website"),
+  source: z.enum(LEAD_SOURCES).default("homepage"),
   projectId: z.string().optional(),
+  projectSlug: z.string().max(120).optional(),
   builderId: z.string().optional(),
   locationId: z.string().optional(),
   query: z.string().max(1000).optional(),
   budget: priceRangeSchema.optional(),
-  status: z.enum(LEAD_STATUSES).default("NEW"),
+  configuration: z.string().max(120).optional(),
+  timeline: z.string().max(120).optional(),
+  purpose: z.string().max(200).optional(),
+  score: z.enum(LEAD_SCORES).default("warm"),
+  status: z.enum(LEAD_STATUSES).default("new"),
   notes: z.array(z.string()).default([]),
   aiAnswers: z.record(z.string(), z.string()).optional(),
 });

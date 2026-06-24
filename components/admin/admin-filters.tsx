@@ -2,9 +2,14 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { LEAD_STATUSES } from "@/config/constants";
+import { LEAD_SCORES, LEAD_SOURCES, LEAD_STATUSES } from "@/config/constants";
 import { PROJECT_STATUSES } from "@/config/constants";
 import { AMENITY_CATEGORIES } from "@/config/model-constants";
+import {
+  LEAD_SCORE_LABELS,
+  LEAD_SOURCE_LABELS,
+  LEAD_STATUS_LABELS,
+} from "@/lib/leads/labels";
 
 interface AdminFiltersProps {
   type: "builders" | "projects" | "leads" | "amenities";
@@ -85,15 +90,53 @@ export function AdminFilters({ type }: AdminFiltersProps) {
       ) : null}
 
       {type === "leads" ? (
-        <FilterSelect
-          label="Status"
-          value={searchParams.get("status") ?? "all"}
-          options={[
-            { value: "all", label: "All statuses" },
-            ...LEAD_STATUSES.map((s) => ({ value: s, label: s })),
-          ]}
-          onChange={(v) => updateFilter("status", v)}
-        />
+        <>
+          <FilterSelect
+            label="Status"
+            value={searchParams.get("status") ?? "all"}
+            options={[
+              { value: "all", label: "All statuses" },
+              ...LEAD_STATUSES.map((s) => ({
+                value: s,
+                label: LEAD_STATUS_LABELS[s],
+              })),
+            ]}
+            onChange={(v) => updateFilter("status", v)}
+          />
+          <FilterSelect
+            label="Source"
+            value={searchParams.get("source") ?? "all"}
+            options={[
+              { value: "all", label: "All sources" },
+              ...LEAD_SOURCES.map((s) => ({
+                value: s,
+                label: LEAD_SOURCE_LABELS[s],
+              })),
+            ]}
+            onChange={(v) => updateFilter("source", v)}
+          />
+          <FilterSelect
+            label="Score"
+            value={searchParams.get("score") ?? "all"}
+            options={[
+              { value: "all", label: "All scores" },
+              ...LEAD_SCORES.map((s) => ({
+                value: s,
+                label: LEAD_SCORE_LABELS[s],
+              })),
+            ]}
+            onChange={(v) => updateFilter("score", v)}
+          />
+          <FilterSelect
+            label="Assignment"
+            value={searchParams.get("unassigned") ?? "all"}
+            options={[
+              { value: "all", label: "All leads" },
+              { value: "true", label: "Unassigned only" },
+            ]}
+            onChange={(v) => updateFilter("unassigned", v)}
+          />
+        </>
       ) : null}
 
       {type === "amenities" ? (

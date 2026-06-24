@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { PROJECT_STATUSES } from "@/config/constants";
 import {
+  LEAD_SCORES,
+  LEAD_SOURCES,
+  LEAD_STATUSES,
+} from "@/config/constants";
+import {
   AMENITY_CATEGORIES,
   FAQ_ENTITY_TYPES,
   IMAGE_ENTITY_TYPES,
@@ -79,17 +84,15 @@ export const mediaFilterSchema = adminSearchSchema.extend({
 });
 
 export const leadFilterSchema = adminSearchSchema.extend({
-  status: z
-    .enum([
-      "NEW",
-      "CONTACTED",
-      "SITE_VISIT",
-      "QUOTATION_SENT",
-      "NEGOTIATION",
-      "WON",
-      "LOST",
-    ])
-    .optional(),
+  status: z.enum(LEAD_STATUSES).optional(),
+  source: z.enum(LEAD_SOURCES).optional(),
+  score: z.enum(LEAD_SCORES).optional(),
+  assignedTo: z.string().optional(),
+  unassigned: z
+    .enum(["true", "false", "all"])
+    .optional()
+    .transform((v) => (v === "true" ? true : undefined)),
+  projectSlug: z.string().optional(),
 });
 
 export const bulkActionSchema = z.object({

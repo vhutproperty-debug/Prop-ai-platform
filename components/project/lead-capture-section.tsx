@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 interface LeadCaptureSectionProps {
   projectId: string;
+  projectSlug: string;
   builderId?: string;
   locationId?: string;
   projectName: string;
@@ -17,6 +18,7 @@ interface LeadCaptureSectionProps {
 
 export function LeadCaptureSection({
   projectId,
+  projectSlug,
   builderId,
   locationId,
   projectName,
@@ -35,8 +37,9 @@ export function LeadCaptureSection({
         email: String(formData.get("email") ?? ""),
         phone: String(formData.get("phone") ?? ""),
         query: String(formData.get("query") ?? "") || undefined,
-        source: "project-page",
+        source: "project_page",
         projectId,
+        projectSlug,
         builderId,
         locationId,
       });
