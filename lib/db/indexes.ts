@@ -9,6 +9,7 @@ import {
   Lead,
   Location,
   Project,
+  SiteSettings,
 } from "@/models";
 
 /**
@@ -27,6 +28,7 @@ export async function ensureIndexes(): Promise<void> {
     Image.syncIndexes(),
     ImportJob.syncIndexes(),
     ImportRecord.syncIndexes(),
+    SiteSettings.syncIndexes(),
   ]);
 }
 

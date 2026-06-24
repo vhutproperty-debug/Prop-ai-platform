@@ -9,6 +9,8 @@ export { Image } from "./Image";
 export { ImportJob } from "./ImportJob";
 export { ImportRecord } from "./ImportRecord";
 
+export { SiteSettings } from "./SiteSettings";
+
 // Legacy models — retained for backward compatibility
 export { Locality } from "./Locality";
 export { User } from "./User";

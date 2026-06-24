@@ -1,0 +1,10 @@
+export { dashboardService } from "@/services/admin/dashboard.service";
+export { adminBuilderService } from "@/services/admin/builders.service";
+export { adminProjectService } from "@/services/admin/projects.service";
+export { adminConfigurationService } from "@/services/admin/configurations.service";
+export { adminAmenityService } from "@/services/admin/amenities.service";
+export { adminFaqService } from "@/services/admin/faqs.service";
+export { adminMediaService } from "@/services/admin/media.service";
+export { adminSettingsService } from "@/services/admin/settings.service";
+export { adminLeadService } from "@/services/admin/leads.service";
+export * from "@/services/admin/query";
