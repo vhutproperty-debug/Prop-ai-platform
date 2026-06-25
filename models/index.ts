@@ -10,6 +10,14 @@ export { ImportJob } from "./ImportJob";
 export { ImportRecord } from "./ImportRecord";
 export { ImportLog } from "./ImportLog";
 
+export { ContentArticle } from "./ContentArticle";
+export { ContentVersion } from "./ContentVersion";
+export { ContentJob } from "./ContentJob";
+export { ContentCampaign } from "./ContentCampaign";
+export { ContentAuditLog } from "./ContentAuditLog";
+export { ContentKnowledgePack } from "./ContentKnowledgePack";
+export { ContentPerformance } from "./ContentPerformance";
+
 export { SiteSettings } from "./SiteSettings";
 
 // Legacy models — retained for backward compatibility

@@ -11,3 +11,8 @@ export { importJobsService } from "./import-jobs/import-jobs.service";
 export { reviewService } from "./review/review.service";
 export { publishingService } from "./publishing/publishing.service";
 export { deduplicationService } from "./deduplication/deduplication.service";
+export { contentArticleService } from "./content-engine/articles/content-article.service";
+export { contentDashboardService } from "./content-engine/analytics/content-dashboard.service";
+export { contentJobService } from "./content-engine/jobs/content-job.service";
+export { contentIntelligenceService } from "./content-engine/intelligence/content-intelligence.service";
+export { researchPipelineService } from "./content-engine/research/research-pipeline.service";

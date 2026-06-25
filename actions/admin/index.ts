@@ -6,3 +6,4 @@ export * from "@/actions/admin/faqs";
 export * from "@/actions/admin/media";
 export * from "@/actions/admin/settings";
 export * from "@/actions/admin/leads";
+export * from "@/actions/admin/content";

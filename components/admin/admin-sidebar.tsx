@@ -7,6 +7,8 @@ import {
   HelpCircle,
   ImageIcon,
   Import,
+  FileText,
+  Database,
   LayoutDashboard,
   Layers,
   MapPin,
@@ -26,6 +28,10 @@ const NAV_ITEMS = [
   { href: "/admin/leads", label: "Leads", icon: Users },
   { href: "/admin/media", label: "Media", icon: ImageIcon },
   { href: "/admin/imports", label: "Imports", icon: Import },
+  { href: "/admin/content", label: "Content Engine", icon: FileText },
+  ...(process.env.NODE_ENV === "development"
+    ? [{ href: "/admin/system/database", label: "Database", icon: Database }]
+    : []),
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
