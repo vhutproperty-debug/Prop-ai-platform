@@ -12,19 +12,15 @@ import {
 import { AdminSidebarNav } from "@/components/admin/admin-sidebar-nav";
 import { cn } from "@/lib/utils";
 
-export function AdminShell({ children }: { children: React.ReactNode }) {
+export function AdminShell({
+  children,
+  role,
+}: {
+  children: React.ReactNode;
+  role: string | null;
+}) {
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [role, setRole] = useState<string | null>(null);
-
-  useEffect(() => {
-    void fetch("/api/auth/me", { credentials: "include" })
-      .then((res) => res.json())
-      .then((json) => {
-        if (json.success && json.data?.role) setRole(json.data.role);
-      })
-      .catch(() => undefined);
-  }, []);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDrawerOpen(false), 0);

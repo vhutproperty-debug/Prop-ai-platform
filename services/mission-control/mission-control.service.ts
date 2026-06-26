@@ -23,6 +23,10 @@ import { siteSitemapService } from "@/services/sitemap/site-sitemap.service";
 import { platformHealthService } from "@/services/mission-control/platform-health.service";
 import { projectAnalyticsService } from "@/services/mission-control/project-analytics.service";
 import { executiveIntelligenceService } from "@/services/mission-control/executive-intelligence.service";
+import {
+  getCachedDashboard,
+  setCachedDashboard,
+} from "@/services/mission-control/dashboard-cache";
 import type {
   ActivityTimelineItem,
   BuilderManagementRow,
@@ -72,8 +76,92 @@ function buildDateFilter(filter?: MissionControlFilter) {
   return query;
 }
 
+const BUILDER_IMPORT_SUCCESS_STATUSES = [
+  "completed",
+  "published",
+  "pending_review",
+];
+
+function isBuilderImportSuccess(status?: string): boolean {
+  return BUILDER_IMPORT_SUCCESS_STATUSES.includes(String(status));
+}
+
+function buildBuilderManagementRow(
+  config: (typeof SUPPORTED_BUILDERS)[number],
+  projectCount: number,
+  jobs: Array<{
+    status?: string;
+    createdAt?: Date;
+    startedAt?: Date;
+    completedAt?: Date;
+  }>,
+  builderDoc?: { logoUrl?: string } | null
+): BuilderManagementRow {
+  const lastImport = jobs[0]?.createdAt
+    ? new Date(jobs[0].createdAt).toISOString()
+    : null;
+  const lastSuccess = jobs.find((j) => isBuilderImportSuccess(j.status));
+  const lastFailure = jobs.find((j) => j.status === "failed");
+
+  const successCount = jobs.filter((j) => isBuilderImportSuccess(j.status)).length;
+  const successRate = jobs.length
+    ? Math.round((successCount / jobs.length) * 100)
+    : 0;
+
+  const durations = jobs
+    .filter((j) => j.startedAt && j.completedAt)
+    .map(
+      (j) =>
+        new Date(j.completedAt!).getTime() - new Date(j.startedAt!).getTime()
+    );
+  const averageImportTimeMs = durations.length
+    ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
+    : null;
+
+  let importStatus: ServiceHealthStatus = "warning";
+  if (
+    lastFailure &&
+    (!lastSuccess || lastFailure.createdAt! > lastSuccess.createdAt!)
+  ) {
+    importStatus = "warning";
+  } else if (successRate >= 70) {
+    importStatus = "online";
+  } else if (jobs.length === 0) {
+    importStatus = "offline";
+  }
+
+  return {
+    slug: config.slug,
+    name: config.name,
+    logoUrl: builderDoc?.logoUrl ? String(builderDoc.logoUrl) : undefined,
+    projects: projectCount,
+    lastImport,
+    lastSuccess: lastSuccess?.completedAt
+      ? new Date(lastSuccess.completedAt).toISOString()
+      : lastSuccess?.createdAt
+        ? new Date(lastSuccess.createdAt).toISOString()
+        : null,
+    lastFailure: lastFailure?.completedAt
+      ? new Date(lastFailure.completedAt).toISOString()
+      : lastFailure?.createdAt
+        ? new Date(lastFailure.createdAt).toISOString()
+        : null,
+    successRate,
+    averageImportTimeMs,
+    importStatus,
+  };
+}
+
 export const missionControlService = {
-  async getDashboard(filter?: MissionControlFilter): Promise<MissionControlDashboardData> {
+  async getDashboard(
+    filter?: MissionControlFilter,
+    options?: { bypassCache?: boolean }
+  ): Promise<MissionControlDashboardData> {
+    if (!options?.bypassCache) {
+      const cached = getCachedDashboard(filter);
+      if (cached) return cached;
+    }
+
     const today = startOfDay();
     const weekAgo = daysAgo(7);
     const monthAgo = daysAgo(30);
@@ -141,7 +229,7 @@ export const missionControlService = {
       alerts,
     });
 
-    return {
+    const result: MissionControlDashboardData = {
       generatedAt: new Date().toISOString(),
       kpis,
       platformHealth,
@@ -162,6 +250,9 @@ export const missionControlService = {
       activity,
       executive,
     };
+
+    setCachedDashboard(filter, result);
+    return result;
   },
 
   async getKpis(today: Date): Promise<MissionControlKpis> {
@@ -357,75 +448,63 @@ export const missionControlService = {
 
   async getBuilderManagement(): Promise<BuilderManagementRow[]> {
     return withDatabase(async () => {
-      const rows: BuilderManagementRow[] = [];
+      const builderSlugs = SUPPORTED_BUILDERS.map((config) => config.slug);
+      const builderNames = SUPPORTED_BUILDERS.map((config) => config.name);
 
-      for (const config of SUPPORTED_BUILDERS) {
-        const [projectCount, jobs, builderDoc] = await Promise.all([
-          Project.countDocuments({ builderName: config.name, isActive: true }),
-          ImportJob.find({ builderSlug: config.slug })
-            .sort({ createdAt: -1 })
-            .limit(20)
-            .lean(),
-          Builder.findOne({ slug: config.slug }).select("logoUrl logo name").lean(),
-        ]);
+      const [projectCountRows, jobGroupRows, builderDocs] = await Promise.all([
+        Project.aggregate<{ _id: string; count: number }>([
+          { $match: { isActive: true, builderName: { $in: builderNames } } },
+          { $group: { _id: "$builderName", count: { $sum: 1 } } },
+        ]),
+        ImportJob.aggregate<{
+          _id: string;
+          jobs: Array<{
+            status?: string;
+            createdAt?: Date;
+            startedAt?: Date;
+            completedAt?: Date;
+          }>;
+        }>([
+          { $match: { builderSlug: { $in: builderSlugs } } },
+          { $sort: { createdAt: -1 } },
+          {
+            $group: {
+              _id: "$builderSlug",
+              jobs: {
+                $push: {
+                  status: "$status",
+                  createdAt: "$createdAt",
+                  startedAt: "$startedAt",
+                  completedAt: "$completedAt",
+                },
+              },
+            },
+          },
+          { $project: { jobs: { $slice: ["$jobs", 20] } } },
+        ]),
+        Builder.find({ slug: { $in: builderSlugs } })
+          .select("slug logoUrl logo name")
+          .lean(),
+      ]);
 
-        const lastImport = jobs[0]?.createdAt
-          ? new Date(jobs[0].createdAt).toISOString()
-          : null;
-        const lastSuccess = jobs.find((j) =>
-          ["completed", "published", "pending_review"].includes(String(j.status))
-        );
-        const lastFailure = jobs.find((j) => j.status === "failed");
+      const projectCountMap = new Map(
+        projectCountRows.map((row) => [row._id, row.count])
+      );
+      const jobsMap = new Map(
+        jobGroupRows.map((row) => [row._id, row.jobs ?? []])
+      );
+      const builderDocMap = new Map(
+        builderDocs.map((doc) => [String(doc.slug), doc])
+      );
 
-        const successCount = jobs.filter((j) =>
-          ["completed", "published", "pending_review"].includes(String(j.status))
-        ).length;
-        const successRate = jobs.length
-          ? Math.round((successCount / jobs.length) * 100)
-          : 0;
-
-        const durations = jobs
-          .filter((j) => j.startedAt && j.completedAt)
-          .map(
-            (j) =>
-              new Date(j.completedAt!).getTime() - new Date(j.startedAt!).getTime()
-          );
-        const averageImportTimeMs = durations.length
-          ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
-          : null;
-
-        let importStatus: ServiceHealthStatus = "warning";
-        if (lastFailure && (!lastSuccess || lastFailure.createdAt! > lastSuccess.createdAt!)) {
-          importStatus = "warning";
-        } else if (successRate >= 70) {
-          importStatus = "online";
-        } else if (jobs.length === 0) {
-          importStatus = "offline";
-        }
-
-        rows.push({
-          slug: config.slug,
-          name: config.name,
-          logoUrl: builderDoc?.logoUrl ? String(builderDoc.logoUrl) : undefined,
-          projects: projectCount,
-          lastImport,
-          lastSuccess: lastSuccess?.completedAt
-            ? new Date(lastSuccess.completedAt).toISOString()
-            : lastSuccess?.createdAt
-              ? new Date(lastSuccess.createdAt).toISOString()
-              : null,
-          lastFailure: lastFailure?.completedAt
-            ? new Date(lastFailure.completedAt).toISOString()
-            : lastFailure?.createdAt
-              ? new Date(lastFailure.createdAt).toISOString()
-              : null,
-          successRate,
-          averageImportTimeMs,
-          importStatus,
-        });
-      }
-
-      return rows;
+      return SUPPORTED_BUILDERS.map((config) =>
+        buildBuilderManagementRow(
+          config,
+          projectCountMap.get(config.name) ?? 0,
+          jobsMap.get(config.slug) ?? [],
+          builderDocMap.get(config.slug)
+        )
+      );
     });
   },
 

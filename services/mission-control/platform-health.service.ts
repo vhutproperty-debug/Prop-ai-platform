@@ -19,7 +19,9 @@ export const platformHealthService = {
   async getAll(): Promise<PlatformServiceHealth[]> {
     const [dbHealth, failedImports, runningJobs, failedContentJobs] =
       await Promise.all([
-        isDbConfigured ? databaseHealthService.check() : null,
+        isDbConfigured
+          ? databaseHealthService.check({ includeCollections: false })
+          : null,
         withDatabase(() =>
           ImportJob.countDocuments({ status: "failed" })
         ).catch(() => 0),

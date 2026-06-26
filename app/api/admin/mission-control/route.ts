@@ -7,10 +7,13 @@ export async function GET(request: Request) {
   try {
     await requireRole("admin");
     const { searchParams } = new URL(request.url);
+    const bypassCache = searchParams.has("_refresh");
     const filter = missionControlFilterSchema.parse(
       Object.fromEntries(searchParams.entries())
     );
-    const data = await missionControlService.getDashboard(filter);
+    const data = await missionControlService.getDashboard(filter, {
+      bypassCache,
+    });
     return apiSuccess(data);
   } catch (error) {
     return apiError(error);

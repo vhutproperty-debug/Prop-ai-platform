@@ -25,8 +25,16 @@ export interface DatabaseHealthReport {
   timestamp: string;
 }
 
+export interface DatabaseHealthCheckOptions {
+  /** When false, skips listCollections (faster; collections returns []). */
+  includeCollections?: boolean;
+}
+
 export const databaseHealthService = {
-  async check(): Promise<DatabaseHealthReport> {
+  async check(
+    options: DatabaseHealthCheckOptions = {}
+  ): Promise<DatabaseHealthReport> {
+    const includeCollections = options.includeCollections !== false;
     const started = Date.now();
     const base = getConnectionInfo();
     const state = getDbConnectionState();
@@ -53,9 +61,10 @@ export const databaseHealthService = {
     try {
       await connectDB();
       const db = mongoose.connection.db;
-      const collections = db
-        ? (await db.listCollections().toArray()).map((c) => c.name).sort()
-        : [];
+      const collections =
+        db && includeCollections
+          ? (await db.listCollections().toArray()).map((c) => c.name).sort()
+          : [];
 
       return {
         mongodb: {

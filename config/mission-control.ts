@@ -51,3 +51,4 @@ export const POI_TYPE_LABELS: Record<string, string> = {
 };
 
 export const MISSION_CONTROL_REFRESH_MS = 30_000;
+export const MISSION_CONTROL_DASHBOARD_CACHE_TTL_MS = 30_000;

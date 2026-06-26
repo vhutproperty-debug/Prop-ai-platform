@@ -106,14 +106,20 @@ export function MissionControlDashboard() {
   }, [filters]);
 
   const loadDashboard = useCallback(
-    async (silent = false) => {
+    async (silent = false, bypassCache = false) => {
       if (!silent) setLoading(true);
       else setRefreshing(true);
       setError(null);
       try {
-        const res = await fetch(`/api/admin/mission-control${queryString}`, {
-          credentials: "include",
-        });
+        const refreshParam = bypassCache
+          ? `${queryString ? "&" : "?"}_refresh=1`
+          : "";
+        const res = await fetch(
+          `/api/admin/mission-control${queryString}${refreshParam}`,
+          {
+            credentials: "include",
+          }
+        );
         const json = await res.json();
         if (!json.success) throw new Error(json.error ?? "Failed to load dashboard");
         setData(json.data);
@@ -135,6 +141,7 @@ export function MissionControlDashboard() {
   }, [loadDashboard]);
 
   useEffect(() => {
+    if (process.env.NODE_ENV === "development") return;
     const timer = setInterval(() => void loadDashboard(true), MISSION_CONTROL_REFRESH_MS);
     return () => clearInterval(timer);
   }, [loadDashboard]);
@@ -174,7 +181,7 @@ export function MissionControlDashboard() {
         <p className="font-medium text-red-800">{error}</p>
         <button
           type="button"
-          onClick={() => void loadDashboard()}
+          onClick={() => void loadDashboard(false, true)}
           className="mt-4 rounded-full bg-accent px-4 py-2 text-sm text-white"
         >
           Retry
@@ -224,7 +231,7 @@ export function MissionControlDashboard() {
           </div>
           <button
             type="button"
-            onClick={() => void loadDashboard(true)}
+            onClick={() => void loadDashboard(true, true)}
             disabled={refreshing}
             className="inline-flex items-center gap-2 self-start rounded-full bg-white/15 px-4 py-2 text-sm font-medium backdrop-blur transition hover:bg-white/25 disabled:opacity-60 lg:self-auto"
           >
