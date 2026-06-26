@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { LEAD_SCORES, LEAD_SOURCES, LEAD_STATUSES } from "@/config/constants";
 import { PROJECT_STATUSES } from "@/config/constants";
 import { AMENITY_CATEGORIES } from "@/config/model-constants";
+import { POI_TYPES, POI_TYPE_LABELS } from "@/config/location-intelligence";
 import {
   LEAD_SCORE_LABELS,
   LEAD_SOURCE_LABELS,
@@ -12,7 +13,7 @@ import {
 } from "@/lib/leads/labels";
 
 interface AdminFiltersProps {
-  type: "builders" | "projects" | "leads" | "amenities";
+  type: "builders" | "projects" | "leads" | "amenities" | "nearby-places";
 }
 
 export function AdminFilters({ type }: AdminFiltersProps) {
@@ -151,6 +152,30 @@ export function AdminFilters({ type }: AdminFiltersProps) {
         />
       ) : null}
 
+      {type === "nearby-places" ? (
+        <>
+          <FilterSelect
+            label="Type"
+            value={searchParams.get("type") ?? "all"}
+            options={[
+              { value: "all", label: "All types" },
+              ...POI_TYPES.map((t) => ({ value: t, label: POI_TYPE_LABELS[t] })),
+            ]}
+            onChange={(v) => updateFilter("type", v)}
+          />
+          <FilterSelect
+            label="Status"
+            value={searchParams.get("isActive") ?? "all"}
+            options={[
+              { value: "all", label: "All" },
+              { value: "true", label: "Active" },
+              { value: "false", label: "Inactive" },
+            ]}
+            onChange={(v) => updateFilter("isActive", v)}
+          />
+        </>
+      ) : null}
+
       {searchParams.toString() ? (
         <Link href={pathname} className="self-center text-sm text-accent hover:underline">
           Clear filters
@@ -176,7 +201,7 @@ function FilterSelect({
       aria-label={label}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="h-11 rounded-full border border-border bg-white px-4 text-sm"
+      className="h-11 min-h-[44px] rounded-full border border-border bg-white px-4 text-sm touch-manipulation md:h-11"
     >
       {options.map((opt) => (
         <option key={opt.value} value={opt.value}>

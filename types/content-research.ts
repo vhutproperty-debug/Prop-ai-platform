@@ -159,6 +159,8 @@ export interface InternalResearchData {
   relatedProjects: Array<{ slug: string; name: string }>;
   competitors: Array<{ slug: string; name: string }>;
   dataGaps: string[];
+  nearbyPlaces: import("@/types/content-research").NearbyInfrastructure[];
+  connectivityScore?: number;
 }
 
 export interface ExternalResearchData {

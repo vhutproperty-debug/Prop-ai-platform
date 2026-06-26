@@ -71,6 +71,26 @@ export interface ProjectPageLocation {
   connectivity?: number;
 }
 
+export interface ProjectPageNearbyPlace {
+  type: string;
+  name: string;
+  distanceLabel?: string;
+  travelTimeLabel?: string;
+}
+
+export interface ProjectPageRelatedProject {
+  slug: string;
+  name: string;
+  builderName?: string;
+  priceMin?: number;
+}
+
+export interface ProjectPageRelatedArticle {
+  slug: string;
+  title: string;
+  contentType: string;
+}
+
 export interface ProjectPageData {
   id: string;
   slug: string;
@@ -96,4 +116,8 @@ export interface ProjectPageData {
   amenities: ProjectPageAmenity[];
   gallery: ProjectPageImage[];
   faqs: ProjectPageFaq[];
+  nearbyPlaces: ProjectPageNearbyPlace[];
+  floorPlans: ProjectPageImage[];
+  relatedProjects: ProjectPageRelatedProject[];
+  relatedArticles: ProjectPageRelatedArticle[];
 }

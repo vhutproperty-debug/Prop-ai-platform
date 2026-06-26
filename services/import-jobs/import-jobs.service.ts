@@ -283,4 +283,113 @@ export const importJobsService = {
       ImportLog.find({ jobId }).sort({ createdAt: -1 }).limit(limit).lean()
     );
   },
+
+  async runSingleProjectImport(options: {
+    builderSlug: string;
+    projectUrl?: string;
+    createdBy?: string;
+  }): Promise<PipelineResult & { recordId?: string; projectUrl?: string }> {
+    if (!isFirecrawlConfigured) {
+      throw new Error("FIRECRAWL_API_KEY is required for builder imports");
+    }
+
+    const builder = getBuilderConfig(options.builderSlug);
+    if (!builder) {
+      throw new Error(`Unknown builder: ${options.builderSlug}`);
+    }
+
+    const logger = createJobLogger("firecrawl");
+
+    const job = await withDatabase(() =>
+      ImportJob.create({
+        source: "firecrawl",
+        builder: builder.name,
+        builderSlug: builder.slug,
+        status: "queued",
+        sourceReference: options.projectUrl ?? builder.projectsListingUrl,
+        createdBy: options.createdBy,
+        batchSize: 1,
+        startedAt: new Date(),
+        logs: [],
+      })
+    );
+
+    const jobId = String(job._id);
+
+    try {
+      await withDatabase(() =>
+        ImportJob.findByIdAndUpdate(jobId, { status: "running" })
+      );
+
+      let projectUrl = options.projectUrl;
+
+      if (!projectUrl) {
+        const listingScrape = await firecrawlService.scrapeUrl(
+          builder.projectsListingUrl
+        );
+        const listing = extractionService.extractFromListing(
+          listingScrape,
+          builder
+        );
+        projectUrl = listing.projectUrls[0];
+
+        if (!projectUrl) {
+          const mapped = await firecrawlService.mapLinks(builder.website, 200);
+          projectUrl = mapped.find((u) => builder.projectLinkPattern?.test(u));
+        }
+      }
+
+      if (!projectUrl) {
+        throw new Error(`No project URL found for builder ${builder.name}`);
+      }
+
+      await withDatabase(() =>
+        ImportJob.findByIdAndUpdate(jobId, { status: "extracting" })
+      );
+
+      const result = await processProjectUrl(jobId, builder, projectUrl);
+
+      const record = await withDatabase(() =>
+        ImportRecord.findOne({ jobId }).sort({ createdAt: -1 }).lean()
+      );
+
+      const finalStatus = result.failed ? "failed" : "pending_review";
+
+      await withDatabase(() =>
+        ImportJob.findByIdAndUpdate(jobId, {
+          status: finalStatus,
+          recordCount: result.failed ? 0 : 1,
+          projectsImported: result.created ? 1 : 0,
+          projectsUpdated: result.updated ? 1 : 0,
+          errorCount: result.failed ? 1 : 0,
+          errors: result.failed ? ["Single project import failed"] : [],
+          logs: logger.getLogs(),
+          completedAt: new Date(),
+        })
+      );
+
+      return {
+        jobId,
+        status: finalStatus,
+        recordsCreated: result.failed ? 0 : 1,
+        duplicatesFound: result.updated ? 1 : 0,
+        validationFailures: result.failed ? 1 : 0,
+        logs: logger.getLogs(),
+        recordId: record ? String(record._id) : undefined,
+        projectUrl,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Import failed";
+      await withDatabase(() =>
+        ImportJob.findByIdAndUpdate(jobId, {
+          status: "failed",
+          errorMessage: message,
+          errors: [message],
+          completedAt: new Date(),
+          logs: logger.getLogs(),
+        })
+      );
+      throw error;
+    }
+  },
 };

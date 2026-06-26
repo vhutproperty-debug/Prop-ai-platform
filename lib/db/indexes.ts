@@ -14,6 +14,7 @@ import {
   ContentAuditLog,
   ContentKnowledgePack,
   ContentPerformance,
+  NearbyPlace,
   Lead,
   Location,
   Project,
@@ -58,6 +59,7 @@ export async function ensureIndexes(): Promise<void> {
     ContentAuditLog,
     ContentKnowledgePack,
     ContentPerformance,
+    NearbyPlace,
     SiteSettings,
   ];
 
@@ -143,5 +145,11 @@ export const INDEX_DOCUMENTATION = {
     "articleId (unique)",
     "contentDecayScore + organicTraffic",
     "leadsGenerated + conversions",
+  ],
+  NearbyPlace: [
+    "entityType + entityId + slug (unique compound)",
+    "projectId + type + isActive",
+    "locationId + type + isActive",
+    "text: name",
   ],
 } as const;

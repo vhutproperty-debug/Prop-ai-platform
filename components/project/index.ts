@@ -7,5 +7,8 @@ export { LocationSection } from "@/components/project/location-section";
 export { FaqSection } from "@/components/project/faq-section";
 export { BrochureSection } from "@/components/project/brochure-section";
 export { LeadCaptureSection } from "@/components/project/lead-capture-section";
+export { NearbyPlacesSection } from "@/components/project/nearby-places-section";
+export { FloorPlansSection } from "@/components/project/floor-plans-section";
+export { RelatedContentSection } from "@/components/project/related-content-section";
 export { ProjectJsonLd } from "@/components/project/project-json-ld";
 export { SectionHeader } from "@/components/project/section-header";

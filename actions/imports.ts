@@ -4,8 +4,9 @@ import { revalidatePath } from "next/cache";
 import { actionError, actionSuccess } from "@/lib/api/response";
 import { requireRole } from "@/lib/auth/session";
 import { ingestionService } from "@/services/ingestion.service";
-import { importReviewService } from "@/services/import-review.service";
+import { publishOrchestratorService } from "@/services/publish-workflow/publish-orchestrator.service";
 import { ingestionRequestSchema } from "@/validations/ingestion";
+import { importReviewService } from "@/services/import-review.service";
 
 export async function runImportAction(input: unknown) {
   try {
@@ -63,12 +64,14 @@ export async function rejectImportRecordAction(
 export async function publishImportRecordAction(recordId: string) {
   try {
     const session = await requireRole("admin");
-    const result = await importReviewService.publishRecord(
+    const result = await publishOrchestratorService.publishImportRecord(
       recordId,
       session.userId
     );
     revalidatePath("/admin/imports");
-    revalidatePath(`/admin/imports/${result.record?.jobId}`);
+    revalidatePath("/admin/imports/review");
+    revalidatePath(`/project/${result.projectSlug}`);
+    revalidatePath("/api/sitemap");
     return actionSuccess(result);
   } catch (error) {
     return actionError(error);

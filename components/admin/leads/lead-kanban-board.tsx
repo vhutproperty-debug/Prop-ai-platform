@@ -27,14 +27,14 @@ export function LeadKanbanBoard({ columns }: { columns: LeadKanbanColumn[] }) {
   return (
     <div
       className={cn(
-        "grid gap-4 overflow-x-auto pb-2 xl:grid-cols-7",
+        "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7",
         isPending && "opacity-70"
       )}
     >
       {columns.map((column) => (
         <div
           key={column.status}
-          className="min-w-[260px] rounded-3xl border border-border bg-white"
+          className="w-full rounded-3xl border border-border bg-white"
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault();

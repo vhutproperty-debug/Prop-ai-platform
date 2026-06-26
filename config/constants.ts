@@ -46,7 +46,12 @@ export const LEGACY_LEAD_SOURCES = [
   "partner",
 ] as const;
 
-export const EMBEDDING_ENTITY_TYPES = ["project", "locality", "builder"] as const;
+export const EMBEDDING_ENTITY_TYPES = [
+  "project",
+  "locality",
+  "builder",
+  "article",
+] as const;
 export type EmbeddingEntityType = (typeof EMBEDDING_ENTITY_TYPES)[number];
 
 export const API_DEFAULT_LIMIT = 20;

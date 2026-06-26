@@ -84,7 +84,7 @@ export function AdminDataTable<T extends { _id: string }>({
         />
       ) : null}
 
-      <div className="overflow-hidden rounded-3xl border border-border bg-white">
+      <div className="hidden overflow-x-auto rounded-3xl border border-border bg-white lg:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -127,6 +127,39 @@ export function AdminDataTable<T extends { _id: string }>({
             ))}
           </TableBody>
         </Table>
+      </div>
+
+      <div className="space-y-3 lg:hidden">
+        {rows.map((row) => (
+          <div
+            key={row._id}
+            className="rounded-2xl border border-border bg-white p-4 shadow-sm"
+          >
+            {onBulkAction ? (
+              <div className="mb-3 flex items-center gap-2 border-b border-border pb-3">
+                <input
+                  type="checkbox"
+                  checked={selected.has(row._id)}
+                  onChange={() => toggleOne(row._id)}
+                  aria-label="Select row"
+                  className="h-5 w-5"
+                />
+                <span className="text-xs text-muted">Select</span>
+              </div>
+            ) : null}
+            {columns.map((col) => (
+              <div
+                key={col.key}
+                className="flex items-start justify-between gap-3 border-b border-border/60 py-2 last:border-0"
+              >
+                <span className="shrink-0 text-xs font-medium uppercase tracking-wide text-muted">
+                  {col.header}
+                </span>
+                <span className="min-w-0 text-right text-sm">{col.render(row)}</span>
+              </div>
+            ))}
+          </div>
+        ))}
       </div>
     </div>
   );

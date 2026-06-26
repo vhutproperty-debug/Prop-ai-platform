@@ -17,6 +17,7 @@ export { ContentCampaign } from "./ContentCampaign";
 export { ContentAuditLog } from "./ContentAuditLog";
 export { ContentKnowledgePack } from "./ContentKnowledgePack";
 export { ContentPerformance } from "./ContentPerformance";
+export { NearbyPlace } from "./NearbyPlace";
 
 export { SiteSettings } from "./SiteSettings";
 

@@ -8,7 +8,7 @@ import {
   deleteMediaAction,
   uploadMultipleMediaAction,
 } from "@/actions/admin/media";
-import { isCloudinaryConfigured } from "@/config/env";
+import { isCloudinaryConfigured } from "@/config/feature-flags";
 import { BulkActionsBar } from "@/components/admin/bulk-actions-bar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

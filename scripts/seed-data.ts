@@ -98,3 +98,33 @@ export const SEED_KNOWLEDGE_PACK = {
   lowConfidenceCount: 0,
   externalDataAvailable: false,
 };
+
+export const SEED_NEARBY_PLACES = [
+  {
+    slug: "seed-worli-metro",
+    type: "metro" as const,
+    name: "Worli Metro Station",
+    distanceLabel: "0.8 km",
+    travelTimeLabel: "5 mins",
+    source: "manual" as const,
+    confidence: "high" as const,
+  },
+  {
+    slug: "seed-worli-school",
+    type: "school" as const,
+    name: "Seed Sample International School",
+    distanceLabel: "1.2 km",
+    travelTimeLabel: "8 mins",
+    source: "manual" as const,
+    confidence: "high" as const,
+  },
+  {
+    slug: "seed-worli-hospital",
+    type: "hospital" as const,
+    name: "Seed Sample Hospital",
+    distanceLabel: "2.0 km",
+    travelTimeLabel: "12 mins",
+    source: "manual" as const,
+    confidence: "high" as const,
+  },
+];

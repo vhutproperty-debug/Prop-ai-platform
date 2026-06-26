@@ -13,6 +13,7 @@ import {
   ContentAuditLog,
   ContentVersion,
   ContentPerformance,
+  NearbyPlace,
 } from "@/models";
 
 export interface CrudTestResult {
@@ -79,6 +80,7 @@ async function cleanupSharedCrudFixtures() {
   await Promise.all([
     ContentArticle.deleteMany({ slug: { $regex: `^${TEST_PREFIX}` } }),
     ContentPerformance.deleteMany({ articleSlug: { $regex: `^${TEST_PREFIX}` } }),
+    NearbyPlace.deleteMany({ slug: { $regex: `^${TEST_PREFIX}` } }),
     Project.deleteMany({ slug: { $regex: `^${TEST_PREFIX}` } }),
     Builder.deleteMany({ slug: { $regex: `^${TEST_PREFIX}` } }),
     Location.deleteMany({ slug: { $regex: `^${TEST_PREFIX}` } }),
@@ -207,6 +209,38 @@ export const crudVerificationService = {
           },
           delete: async (id) => {
             await Project.deleteOne({ _id: id });
+          },
+        }),
+
+      () =>
+        runCrudTest("NearbyPlace", {
+          create: async () => {
+            const doc = await NearbyPlace.create({
+              entityType: "project",
+              entityId: fixtures.project._id,
+              projectId: fixtures.project._id,
+              locationId: fixtures.location._id,
+              type: "school",
+              name: "CRUD Test School",
+              slug: `${TEST_PREFIX}school`,
+              distanceLabel: "1 km",
+              source: "manual",
+              confidence: "high",
+              isActive: true,
+            });
+            return doc._id;
+          },
+          read: async (id) => Boolean(await NearbyPlace.findById(id).lean()),
+          update: async (id) => {
+            const doc = await NearbyPlace.findByIdAndUpdate(
+              id,
+              { $set: { distanceLabel: "1.5 km" } },
+              { new: true }
+            );
+            return Boolean(doc);
+          },
+          delete: async (id) => {
+            await NearbyPlace.deleteOne({ _id: id });
           },
         }),
 

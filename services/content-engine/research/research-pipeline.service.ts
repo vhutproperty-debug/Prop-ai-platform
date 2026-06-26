@@ -54,7 +54,10 @@ export const researchPipelineService = {
       external
     );
 
-    const validationErrors = factValidatorService.validate(knowledgePack);
+    const validationErrors = factValidatorService.validate(
+      knowledgePack,
+      input.contentType
+    );
 
     const duplicateWarnings = input.skipDuplicateCheck
       ? []

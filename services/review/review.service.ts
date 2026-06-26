@@ -192,54 +192,9 @@ export const reviewService = {
   },
 
   async publishRecord(recordId: string, reviewedBy: string) {
-    const record = await withDatabase(() => ImportRecord.findById(recordId));
-    if (!record) throw new NotFoundError("Import record");
-
-    if (record.status === "published") {
-      return { record, projectId: record.publishedId };
-    }
-
-    if (
-      !["approved", "staged", "update"].includes(record.status)
-    ) {
-      throw new Error(`Cannot publish record with status: ${record.status}`);
-    }
-
-    const bundle = record.stagedData as NormalizedImportBundle;
-    const logger = createJobLogger(bundle.source, String(record.jobId));
-    const isUpdate =
-      record.recordType === "update" || record.status === "update";
-
-    const projectId = await publishBundle(bundle, logger, {
-      existingProjectId: record.existingProjectId
-        ? String(record.existingProjectId)
-        : undefined,
-      isUpdate,
-      publishActive: true,
-    });
-
-    const updated = await withDatabase(() =>
-      ImportRecord.findByIdAndUpdate(
-        recordId,
-        {
-          status: "published",
-          publishedId: projectId,
-          reviewedBy,
-          reviewedAt: new Date(),
-        },
-        { new: true }
-      ).lean()
+    const { publishOrchestratorService } = await import(
+      "@/services/publish-workflow/publish-orchestrator.service"
     );
-
-    await withDatabase(() =>
-      ImportJob.findByIdAndUpdate(record.jobId, {
-        $inc: {
-          publishedCount: 1,
-          ...(isUpdate ? { projectsUpdated: 1 } : { projectsImported: 1 }),
-        },
-      })
-    );
-
-    return { record: updated, projectId };
+    return publishOrchestratorService.publishImportRecord(recordId, reviewedBy);
   },
 };

@@ -17,14 +17,14 @@ export function AdminPageHeader({
   action,
 }: AdminPageHeaderProps) {
   return (
-    <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
+    <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-start sm:justify-between">
+      <div className="min-w-0">
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h1>
         {description ? (
           <p className="mt-1 text-sm text-muted">{description}</p>
         ) : null}
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
         {action}
         {createHref ? (
           <Button asChild variant="accent">

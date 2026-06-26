@@ -5,12 +5,15 @@ import {
   BrochureSection,
   ConfigurationSection,
   FaqSection,
+  FloorPlansSection,
   GallerySection,
   HeroSection,
   LeadCaptureSection,
   LocationSection,
+  NearbyPlacesSection,
   OverviewSection,
   ProjectJsonLd,
+  RelatedContentSection,
 } from "@/components/project";
 import { ProjectPageHeader } from "@/components/project/project-page-header";
 import { isDbConfigured } from "@/config/env";
@@ -83,6 +86,14 @@ export default async function ProjectPage({ params }: PageProps) {
             gallery={project.gallery}
             projectName={project.projectName}
           />
+          <NearbyPlacesSection
+            places={project.nearbyPlaces}
+            projectName={project.projectName}
+          />
+          <FloorPlansSection
+            floorPlans={project.floorPlans}
+            projectName={project.projectName}
+          />
           <LocationSection
             location={project.location}
             locationName={project.locationName}
@@ -91,6 +102,12 @@ export default async function ProjectPage({ params }: PageProps) {
             longitude={project.longitude}
           />
           <FaqSection faqs={project.faqs} />
+          <RelatedContentSection
+            projectSlug={project.slug}
+            projectName={project.projectName}
+            relatedProjects={project.relatedProjects}
+            relatedArticles={project.relatedArticles}
+          />
           <BrochureSection
             brochure={project.brochure}
             projectName={project.projectName}

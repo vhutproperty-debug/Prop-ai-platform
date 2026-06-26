@@ -40,13 +40,13 @@ export function AdminPagination({
   return (
     <nav
       aria-label="Pagination"
-      className="flex items-center justify-center gap-2 pt-6"
+      className="flex flex-wrap items-center justify-center gap-2 pt-6"
     >
       <Link
         href={buildHref(basePath, searchParams, Math.max(1, page - 1))}
         aria-disabled={page <= 1}
         className={cn(
-          "rounded-full border border-border px-4 py-2 text-sm",
+          "min-h-[44px] rounded-full border border-border px-4 py-2 text-sm touch-manipulation",
           page <= 1 && "pointer-events-none opacity-40"
         )}
       >
@@ -57,20 +57,24 @@ export function AdminPagination({
           key={p}
           href={buildHref(basePath, searchParams, p)}
           className={cn(
-            "flex h-10 w-10 items-center justify-center rounded-full text-sm",
+            "flex h-10 min-h-[44px] w-10 items-center justify-center rounded-full text-sm touch-manipulation",
             p === page
               ? "bg-foreground text-background"
-              : "border border-border hover:bg-foreground/5"
+              : "hidden border border-border hover:bg-foreground/5 sm:flex",
+            p === page && "flex"
           )}
         >
           {p}
         </Link>
       ))}
+      <span className="px-2 text-sm text-muted sm:hidden">
+        Page {page} of {totalPages}
+      </span>
       <Link
         href={buildHref(basePath, searchParams, Math.min(totalPages, page + 1))}
         aria-disabled={page >= totalPages}
         className={cn(
-          "rounded-full border border-border px-4 py-2 text-sm",
+          "min-h-[44px] rounded-full border border-border px-4 py-2 text-sm touch-manipulation",
           page >= totalPages && "pointer-events-none opacity-40"
         )}
       >

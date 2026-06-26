@@ -8,6 +8,7 @@ import { FAQ } from "@/models/FAQ";
 import { Image } from "@/models/Image";
 import { Location } from "@/models/Location";
 import { Project } from "@/models/Project";
+import { ContentArticle } from "@/models/ContentArticle";
 import type {
   ProjectPageAmenity,
   ProjectPageBuilder,
@@ -16,7 +17,11 @@ import type {
   ProjectPageFaq,
   ProjectPageImage,
   ProjectPageLocation,
+  ProjectPageNearbyPlace,
+  ProjectPageRelatedArticle,
+  ProjectPageRelatedProject,
 } from "@/types/project-page";
+import { nearbyPlaceService } from "@/services/location-intelligence/nearby-place.service";
 
 function normalizeSlug(slug: string): string {
   return slug.toLowerCase().trim();
@@ -162,7 +167,7 @@ export const projectPageService = {
       const galleryIds = project.gallery ?? [];
       const faqIds = project.faqs ?? [];
 
-      const [builder, location, configurations, amenities, gallery, faqs] =
+      const [builder, location, configurations, amenities, gallery, faqs, nearbyRaw, relatedProjects, relatedArticles] =
         await Promise.all([
           Builder.findById(project.builderId)
             .select(
@@ -203,6 +208,24 @@ export const projectPageService = {
                 .sort({ order: 1 })
                 .lean()
             : [],
+          nearbyPlaceService.listByProject(String(project._id)),
+          Project.find({
+            microMarket: project.microMarket,
+            isActive: true,
+            _id: { $ne: project._id },
+          })
+            .select("slug projectName builderName priceRange.min")
+            .limit(4)
+            .lean(),
+          ContentArticle.find({
+            projectSlug: normalizedSlug,
+            status: "published",
+            isActive: true,
+          })
+            .select("slug title contentType")
+            .sort({ publishedAt: -1 })
+            .limit(8)
+            .lean(),
         ]);
 
       let builderLogoUrl = builder?.logoUrl
@@ -225,6 +248,37 @@ export const projectPageService = {
         location && location.isActive !== false
           ? mapLocation(location as Record<string, unknown>)
           : null;
+
+      const mappedGallery = mapGallery(gallery as Record<string, unknown>[]);
+      const floorPlans = mappedGallery.filter((image) => image.type === "floorplan");
+      const displayGallery = mappedGallery.filter((image) => image.type !== "floorplan");
+
+      const nearbyPlaces: ProjectPageNearbyPlace[] = nearbyRaw.map((place) => ({
+        type: place.type,
+        name: place.name,
+        distanceLabel: place.distanceLabel,
+        travelTimeLabel: place.travelTimeLabel,
+      }));
+
+      const relatedProjectRows: ProjectPageRelatedProject[] = relatedProjects.map(
+        (item) => ({
+          slug: String(item.slug),
+          name: String(item.projectName),
+          builderName: item.builderName ? String(item.builderName) : undefined,
+          priceMin:
+            typeof item.priceRange?.min === "number"
+              ? item.priceRange.min
+              : undefined,
+        })
+      );
+
+      const relatedArticleRows: ProjectPageRelatedArticle[] = relatedArticles.map(
+        (item) => ({
+          slug: String(item.slug),
+          title: String(item.title),
+          contentType: String(item.contentType),
+        })
+      );
 
       return {
         id: toObjectIdString(project._id),
@@ -267,8 +321,12 @@ export const projectPageService = {
           configurations as Record<string, unknown>[]
         ),
         amenities: mapAmenities(amenities as Record<string, unknown>[]),
-        gallery: mapGallery(gallery as Record<string, unknown>[]),
+        gallery: displayGallery,
         faqs: mapFaqs(faqs as Record<string, unknown>[]),
+        nearbyPlaces,
+        floorPlans,
+        relatedProjects: relatedProjectRows,
+        relatedArticles: relatedArticleRows,
       };
     });
   },

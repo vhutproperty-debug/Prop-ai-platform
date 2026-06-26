@@ -1,10 +1,7 @@
 import { withDatabase } from "@/lib/db/with-database";
 import { NotFoundError } from "@/lib/errors";
-import { publishBundle } from "@/services/publishing/publishing.service";
-import { createJobLogger } from "@/lib/ingestion/logger";
 import { ImportJob } from "@/models/ImportJob";
 import { ImportRecord } from "@/models/ImportRecord";
-import type { NormalizedImportBundle } from "@/types/ingestion";
 
 export const importReviewService = {
   async listJobs(page = 1, limit = 20) {
@@ -71,57 +68,10 @@ export const importReviewService = {
   },
 
   async publishRecord(recordId: string, reviewedBy: string) {
-    const record = await withDatabase(() => ImportRecord.findById(recordId));
-    if (!record) throw new NotFoundError("Import record");
-
-    if (record.status === "published") {
-      return { record, projectId: record.publishedId };
-    }
-
-    if (record.status !== "approved" && record.status !== "staged") {
-      throw new Error(`Cannot publish record with status: ${record.status}`);
-    }
-
-    const logger = createJobLogger(
-      (record.stagedData as NormalizedImportBundle).source,
-      String(record.jobId)
+    const { publishOrchestratorService } = await import(
+      "@/services/publish-workflow/publish-orchestrator.service"
     );
-
-    const isUpdate =
-      record.recordType === "update" || record.status === "update";
-
-    const projectId = await publishBundle(
-      record.stagedData as NormalizedImportBundle,
-      logger,
-      {
-        existingProjectId: record.existingProjectId
-          ? String(record.existingProjectId)
-          : undefined,
-        isUpdate,
-        publishActive: true,
-      }
-    );
-
-    const updated = await withDatabase(() =>
-      ImportRecord.findByIdAndUpdate(
-        recordId,
-        {
-          status: "published",
-          publishedId: projectId,
-          reviewedBy,
-          reviewedAt: new Date(),
-        },
-        { new: true }
-      ).lean()
-    );
-
-    await withDatabase(() =>
-      ImportJob.findByIdAndUpdate(record.jobId, {
-        $inc: { publishedCount: 1 },
-      })
-    );
-
-    return { record: updated, projectId };
+    return publishOrchestratorService.publishImportRecord(recordId, reviewedBy);
   },
 
   async listPendingReview(page = 1, limit = 50) {

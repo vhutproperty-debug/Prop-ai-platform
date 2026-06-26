@@ -69,12 +69,12 @@ export default async function ArticlePage({ params }: PageProps) {
         />
       )}
 
-      <article className="mx-auto max-w-3xl px-4 py-12">
+      <article className="container-premium mx-auto max-w-3xl py-8 sm:py-12">
         <header className="mb-8">
           <p className="text-sm text-muted">
             {CONTENT_TYPE_LABELS[article.contentType as ContentType]}
           </p>
-          <h1 className="mt-2 text-4xl font-semibold tracking-tight">
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
             {article.title}
           </h1>
           {article.featuredSummary && (

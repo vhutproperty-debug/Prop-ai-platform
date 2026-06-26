@@ -10,12 +10,14 @@ import { ContentArticle } from "../models/ContentArticle";
 import { ContentKnowledgePack } from "../models/ContentKnowledgePack";
 import { ContentCampaign } from "../models/ContentCampaign";
 import { User } from "../models/User";
+import { NearbyPlace } from "../models/NearbyPlace";
 import {
   SEED_ARTICLE,
   SEED_BUILDER,
   SEED_CAMPAIGN,
   SEED_KNOWLEDGE_PACK,
   SEED_LOCATION,
+  SEED_NEARBY_PLACES,
   SEED_PROJECT,
 } from "./seed-data";
 
@@ -61,6 +63,24 @@ async function seed() {
   );
 
   await Builder.updateOne({ _id: builder._id }, { $set: { projectCount: 1 } });
+
+  console.log("[Seed] Upserting nearby places...");
+  for (const place of SEED_NEARBY_PLACES) {
+    await NearbyPlace.findOneAndUpdate(
+      { entityType: "project", entityId: project._id, slug: place.slug },
+      {
+        $set: {
+          ...place,
+          entityType: "project",
+          entityId: project._id,
+          projectId: project._id,
+          locationId: location._id,
+          isActive: true,
+        },
+      },
+      { upsert: true, new: true }
+    );
+  }
 
   console.log("[Seed] Upserting article...");
   const article = await ContentArticle.findOneAndUpdate(

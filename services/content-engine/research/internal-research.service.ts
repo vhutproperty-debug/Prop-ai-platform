@@ -7,6 +7,8 @@ import { Amenity } from "@/models/Amenity";
 import { FAQ } from "@/models/FAQ";
 import type { ContentFaq } from "@/types/content-engine";
 import type { InternalResearchData } from "@/types/content-research";
+import { nearbyPlaceService } from "@/services/location-intelligence/nearby-place.service";
+import { POI_TYPES, type PoiType } from "@/config/location-intelligence";
 
 export class InsufficientDataError extends Error {
   constructor(message: string) {
@@ -51,6 +53,16 @@ export const internalResearchService = {
       if (!amenityDocs.length) dataGaps.push("amenities");
       if (!project.description) dataGaps.push("description");
       if (!location?.connectivity) dataGaps.push("connectivity_scores");
+
+      const nearbyPlaces = await nearbyPlaceService.toResearchInfrastructure(
+        String(project._id)
+      );
+      const existingPoiTypes = [...new Set(nearbyPlaces.map((p) => p.type))] as PoiType[];
+      for (const poiType of POI_TYPES) {
+        if (!existingPoiTypes.includes(poiType)) {
+          dataGaps.push(`nearby_${poiType}`);
+        }
+      }
 
       const existingFaqs: ContentFaq[] = faqDocs.map((f) => ({
         question: f.question,
@@ -131,6 +143,8 @@ export const internalResearchService = {
           .filter((p) => p.builderName !== project.builderName)
           .map((p) => ({ slug: p.slug, name: p.projectName })),
         dataGaps,
+        nearbyPlaces,
+        connectivityScore: location?.connectivity,
       };
     });
   },

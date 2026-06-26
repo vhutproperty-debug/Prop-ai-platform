@@ -1,5 +1,15 @@
 import { z } from "zod";
-import { loadEnvFiles } from "@/lib/env/load-env-file";
+
+function loadEnvIfNeeded(): void {
+  if (typeof window !== "undefined" || process.env.MONGODB_URI) return;
+  try {
+    // Dynamic require keeps fs out of client bundles.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    require("@/lib/env/load-env-file").loadEnvFiles();
+  } catch {
+    // ignore when unavailable (edge/client analysis)
+  }
+}
 
 const mongoUriSchema = z
   .string()
@@ -51,9 +61,7 @@ function formatFieldErrors(errors: Record<string, string[]>): string {
 }
 
 function parseEnv(): Env {
-  if (typeof window === "undefined" && !process.env.MONGODB_URI) {
-    loadEnvFiles();
-  }
+  loadEnvIfNeeded();
 
   const result = envSchema.safeParse(process.env);
 

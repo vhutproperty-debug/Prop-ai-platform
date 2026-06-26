@@ -12,6 +12,28 @@ const firecrawlImportSchema = z.object({
   maxProjects: z.number().int().min(1).max(200).optional(),
 });
 
+const singleProjectImportSchema = z.object({
+  builderSlug: z.string().min(2),
+  projectUrl: z.string().url().optional(),
+});
+
+export async function runSingleProjectImportAction(input: unknown) {
+  try {
+    const session = await requireRole("admin");
+    const data = singleProjectImportSchema.parse(input);
+    const result = await importJobsService.runSingleProjectImport({
+      builderSlug: data.builderSlug,
+      projectUrl: data.projectUrl,
+      createdBy: session.userId,
+    });
+    revalidatePath("/admin/imports");
+    revalidatePath("/admin/imports/review");
+    return actionSuccess(result);
+  } catch (error) {
+    return actionError(error);
+  }
+}
+
 export async function runFirecrawlImportAction(input: unknown) {
   try {
     const session = await requireRole("admin");

@@ -11,7 +11,12 @@
     "seed": "node --require ./scripts/setup-dns.cjs ./node_modules/tsx/dist/cli.mjs scripts/seed.ts",
     "setup:atlas": "node scripts/atlas-cli-setup.mjs",
     "setup:db": "node scripts/setup-from-uri.mjs",
-    "verify:db": "node scripts/verify-database.mjs"
+    "verify:db": "node scripts/verify-database.mjs",
+    "verify:phase-72": "node --require ./scripts/setup-dns.cjs ./node_modules/tsx/dist/cli.mjs scripts/verify-phase-72.mjs",
+    "import:first": "node --require ./scripts/setup-dns.cjs ./node_modules/tsx/dist/cli.mjs scripts/run-phase-74-import.mjs",
+    "verify:phase-74": "node --require ./scripts/setup-dns.cjs ./node_modules/tsx/dist/cli.mjs scripts/verify-phase-74.mjs",
+    "verify:phase-75": "node --require ./scripts/setup-dns.cjs ./node_modules/tsx/dist/cli.mjs scripts/verify-phase-75.mjs",
+    "verify:responsive": "node scripts/verify-responsive.mjs"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.3.0",
@@ -20,6 +25,7 @@
     "cloudinary": "^2.10.0",
     "clsx": "^2.1.1",
     "framer-motion": "^12.40.0",
+    "jose": "^6.2.3",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^1.20.0",
     "mongoose": "^9.7.0",

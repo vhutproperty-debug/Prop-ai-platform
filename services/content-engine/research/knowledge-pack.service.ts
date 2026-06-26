@@ -88,14 +88,17 @@ export const knowledgePackService = {
       });
     }
 
-    const nearbyInfrastructure: NearbyInfrastructure[] = [];
-    if (locality?.connectivity) {
-      nearbyInfrastructure.push({
-        type: "metro",
-        name: `${locality.name} connectivity`,
-        confidence: "medium",
-      });
-    }
+    const nearbyInfrastructure: NearbyInfrastructure[] = internal.nearbyPlaces?.length
+      ? internal.nearbyPlaces
+      : locality?.connectivity
+        ? [
+            {
+              type: "metro",
+              name: `${locality.name} connectivity score`,
+              confidence: "low",
+            },
+          ]
+        : [];
 
     const externalSources: ResearchSource[] = external
       .filter((e) => e.available && e.items.length)

@@ -1,10 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { AUTH_COOKIE } from "@/config/constants";
-import { verifyToken } from "@/lib/auth/jwt";
+import { verifyTokenEdge } from "@/lib/auth/verify-token-edge";
 
 const protectedPrefixes = ["/admin"];
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isProtected = protectedPrefixes.some((prefix) =>
@@ -21,7 +21,7 @@ export function middleware(request: NextRequest) {
   }
 
   try {
-    const payload = verifyToken(token);
+    const payload = await verifyTokenEdge(token);
     if (!["admin", "agent"].includes(payload.role)) {
       return NextResponse.redirect(new URL("/", request.url));
     }

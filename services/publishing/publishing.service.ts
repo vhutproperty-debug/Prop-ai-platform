@@ -14,6 +14,7 @@ import {
 import type { IngestionLogger } from "@/lib/ingestion/logger";
 import type { ConfigurationType } from "@/config/model-constants";
 import { mediaUploadService } from "@/services/publishing/media-upload.service";
+import { nearbyPlaceService } from "@/services/location-intelligence/nearby-place.service";
 
 export interface PublishOptions {
   existingProjectId?: string;
@@ -264,6 +265,15 @@ export async function publishBundle(
     projectDoc.configurations = configIds as never;
     projectDoc.amenities = amenityIds as never;
     await projectDoc.save();
+
+    if (extensions?.locationIntelligence?.length) {
+      const syncResult = await nearbyPlaceService.syncFromFirecrawl(
+        String(projectDoc._id),
+        extensions.locationIntelligence,
+        "firecrawl"
+      );
+      logger.info("Location intelligence synced", syncResult);
+    }
 
     if (!isUpdate) {
       await Builder.updateOne({ _id: builderId }, { $inc: { projectCount: 1 } });
