@@ -16,6 +16,7 @@
     "import:first": "node --require ./scripts/setup-dns.cjs ./node_modules/tsx/dist/cli.mjs scripts/run-phase-74-import.mjs",
     "verify:phase-74": "node --require ./scripts/setup-dns.cjs ./node_modules/tsx/dist/cli.mjs scripts/verify-phase-74.mjs",
     "verify:phase-75": "node --require ./scripts/setup-dns.cjs ./node_modules/tsx/dist/cli.mjs scripts/verify-phase-75.mjs",
+    "verify:firecrawl": "node --require ./scripts/setup-dns.cjs ./node_modules/tsx/dist/cli.mjs scripts/verify-firecrawl-import.mjs",
     "verify:responsive": "node scripts/verify-responsive.mjs"
   },
   "dependencies": {
@@ -24,6 +25,7 @@
     "class-variance-authority": "^0.7.1",
     "cloudinary": "^2.10.0",
     "clsx": "^2.1.1",
+    "firecrawl": "^4.28.3",
     "framer-motion": "^12.40.0",
     "jose": "^6.2.3",
     "jsonwebtoken": "^9.0.3",

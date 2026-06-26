@@ -44,6 +44,7 @@ async function processProjectUrl(
   retryCount = 0
 ): Promise<{ created: boolean; updated: boolean; failed: boolean }> {
   const logger = createJobLogger("firecrawl", jobId);
+  const started = Date.now();
 
   try {
     const scrape = await firecrawlService.scrapeUrl(url);
@@ -54,6 +55,8 @@ async function processProjectUrl(
     if (!validation.success) {
       await writeLog(jobId, "error", `Validation failed for ${url}`, {
         url,
+        status: "validation_failed",
+        durationMs: Date.now() - started,
         projectSlug: bundle.project.slug,
         builderSlug: builder.slug,
         errors: validation.error.flatten(),
@@ -93,9 +96,14 @@ async function processProjectUrl(
       `${classification.recordType}: ${bundle.project.projectName}`,
       {
         url,
+        status: classification.recordType,
+        durationMs: Date.now() - started,
         projectSlug: bundle.project.slug,
         builderSlug: builder.slug,
         recordType: classification.recordType,
+        title: facts.projectName,
+        imageCount: facts.galleryImages.length + (facts.coverImage ? 1 : 0),
+        linkCount: scrape.links?.length ?? 0,
       }
     );
 
@@ -106,13 +114,25 @@ async function processProjectUrl(
     };
   } catch (error) {
     if (retryCount < DEFAULT_MAX_RETRIES) {
+      await writeLog(jobId, "warning", `Retry ${retryCount + 1}/${DEFAULT_MAX_RETRIES} for ${url}`, {
+        url,
+        status: "retry",
+        durationMs: Date.now() - started,
+        builderSlug: builder.slug,
+        error: error instanceof Error ? error.message : String(error),
+      });
       await new Promise((r) => setTimeout(r, 1000 * (retryCount + 1)));
       return processProjectUrl(jobId, builder, url, retryCount + 1);
     }
 
     const message = error instanceof Error ? error.message : "Scrape failed";
-    await writeLog(jobId, "error", message, { url, builderSlug: builder.slug });
-    logger.error(message, { url });
+    await writeLog(jobId, "error", message, {
+      url,
+      status: "failed",
+      durationMs: Date.now() - started,
+      builderSlug: builder.slug,
+    });
+    logger.error(message, { url, durationMs: Date.now() - started });
     return { created: false, updated: false, failed: true };
   }
 }
@@ -150,6 +170,7 @@ export const importJobsService = {
     const batchSize = options.batchSize ?? DEFAULT_BATCH_SIZE;
     const maxProjects = options.maxProjects ?? 100;
     const logger = createJobLogger("firecrawl");
+    const jobStarted = Date.now();
 
     const job = await withDatabase(() =>
       ImportJob.create({
@@ -190,6 +211,15 @@ export const importJobsService = {
       }
 
       projectUrls = [...new Set(projectUrls)].slice(0, maxProjects);
+
+      await writeLog(jobId, "success", "Listing page crawled", {
+        url: builder.projectsListingUrl,
+        status: "listing_crawled",
+        durationMs: Date.now() - jobStarted,
+        builderSlug: builder.slug,
+        projectsDetected: projectUrls.length,
+        listingLinks: listing.projectUrls.length,
+      });
 
       await withDatabase(() =>
         ImportJob.findByIdAndUpdate(jobId, { status: "extracting" })
@@ -234,6 +264,19 @@ export const importJobsService = {
           completedAt: new Date(),
         })
       );
+
+      await writeLog(jobId, "success", "Builder import completed", {
+        url: builder.projectsListingUrl,
+        status: finalStatus,
+        durationMs: Date.now() - jobStarted,
+        builderSlug: builder.slug,
+        pagesCrawled: 1 + projectUrls.length,
+        projectsDetected: projectUrls.length,
+        projectsNormalized: recordCount,
+        validationFailures: failures,
+        errors: errors.length ? errors : undefined,
+        warnings: warnings.length ? warnings : undefined,
+      });
 
       return {
         jobId,
@@ -299,6 +342,7 @@ export const importJobsService = {
     }
 
     const logger = createJobLogger("firecrawl");
+    const jobStarted = Date.now();
 
     const job = await withDatabase(() =>
       ImportJob.create({
@@ -367,6 +411,17 @@ export const importJobsService = {
           completedAt: new Date(),
         })
       );
+
+      await writeLog(jobId, result.failed ? "error" : "success", "Single project import completed", {
+        url: projectUrl,
+        status: finalStatus,
+        durationMs: Date.now() - jobStarted,
+        builderSlug: builder.slug,
+        pagesCrawled: 1,
+        projectsDetected: 1,
+        projectsNormalized: result.failed ? 0 : 1,
+        validationFailures: result.failed ? 1 : 0,
+      });
 
       return {
         jobId,

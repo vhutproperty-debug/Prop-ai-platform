@@ -31,6 +31,8 @@ export const extractionService = {
       markdown: scrape.markdown,
       html: scrape.html,
       metadata: scrape.metadata,
+      links: scrape.links,
+      images: scrape.images,
       builderName: builder.name,
       builderWebsite: builder.website,
     });

@@ -28,7 +28,11 @@ export function loadEnvFiles(cwd = process.cwd()) {
         value = value.slice(1, -1);
       }
 
-      if (process.env[key] === undefined) {
+      const existing = process.env[key];
+      if (
+        existing === undefined ||
+        (existing === "" && value !== "")
+      ) {
         process.env[key] = value;
       }
     }

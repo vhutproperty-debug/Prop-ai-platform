@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 function loadEnvIfNeeded(): void {
-  if (typeof window !== "undefined" || process.env.MONGODB_URI) return;
+  if (typeof window !== "undefined") return;
   try {
     // Dynamic require keeps fs out of client bundles.
     // eslint-disable-next-line @typescript-eslint/no-require-imports

@@ -224,11 +224,42 @@ function inferStatus(text: string): ExtractedProjectFacts["status"] {
   return "ongoing";
 }
 
+function collectScrapeImages(input: {
+  content: string;
+  baseUrl: string;
+  images?: string[];
+  links?: string[];
+  metadata?: Record<string, unknown>;
+}): string[] {
+  const urls = new Set<string>(extractImages(input.content, input.baseUrl));
+
+  for (const href of input.images ?? []) {
+    const resolved = resolveUrl(href, input.baseUrl);
+    if (resolved) urls.add(resolved);
+  }
+
+  for (const href of input.links ?? []) {
+    if (!/\.(jpe?g|png|webp|gif|avif)(\?|$)/i.test(href)) continue;
+    const resolved = resolveUrl(href, input.baseUrl);
+    if (resolved) urls.add(resolved);
+  }
+
+  const ogImage = input.metadata?.ogImage;
+  if (typeof ogImage === "string") {
+    const resolved = resolveUrl(ogImage, input.baseUrl);
+    if (resolved) urls.add(resolved);
+  }
+
+  return [...urls];
+}
+
 export function parseProjectPage(input: {
   url: string;
   markdown?: string;
   html?: string;
   metadata?: Record<string, unknown>;
+  links?: string[];
+  images?: string[];
   builderName: string;
   builderWebsite: string;
 }): ExtractedProjectFacts {
@@ -237,7 +268,13 @@ export function parseProjectPage(input: {
   const slug = generateProjectSlug(input.builderName, projectName);
   const prices = extractPrices(content);
   const configurations = extractConfigurations(content);
-  const images = extractImages(content, input.url);
+  const images = collectScrapeImages({
+    content,
+    baseUrl: input.url,
+    images: input.images,
+    links: input.links,
+    metadata: input.metadata,
+  });
   const pdfLinks: string[] = [];
   const pdfRe = new RegExp(PDF_LINK.source, PDF_LINK.flags);
   let pdfMatch: RegExpExecArray | null;
