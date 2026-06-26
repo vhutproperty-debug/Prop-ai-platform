@@ -33,6 +33,13 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
+.env.local
+.atlas-output.json
+.atlas-setup.env
+.atlas-cli/
+.mongo-uri.local
+.atlas-debug.png
+.atlas-device-code.txt
 
 # vercel
 .vercel

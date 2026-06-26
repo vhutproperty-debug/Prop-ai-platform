@@ -1,3 +1,4 @@
+import "@/lib/db/setup-dns";
 import mongoose from "mongoose";
 import { connectDB, getConnectionInfo } from "@/lib/db/mongodb";
 import { getDbConnectionState } from "@/lib/db/connection-state";

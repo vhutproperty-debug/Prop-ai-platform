@@ -1,3 +1,4 @@
+import "@/lib/db/setup-dns";
 import mongoose from "mongoose";
 import {
   env,

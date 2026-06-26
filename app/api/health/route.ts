@@ -1,3 +1,4 @@
+import "@/lib/db/setup-dns";
 import { NextResponse } from "next/server";
 import { databaseHealthService } from "@/services/database/health.service";
 import { isAuthConfigured, isCloudinaryConfigured, isDbConfigured } from "@/config/env";

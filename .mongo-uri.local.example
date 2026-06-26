@@ -1,0 +1,2 @@
+# Paste your MongoDB Atlas connection string on the line below (then run: npm run setup:db)
+# mongodb+srv://<user>:<password>@<cluster>.mongodb.net/propai?retryWrites=true&w=majority

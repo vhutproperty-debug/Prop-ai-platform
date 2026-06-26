@@ -4,7 +4,7 @@ import { IMAGE_ENTITY_TYPES, IMAGE_TYPES } from "@/config/model-constants";
 const ImageSchema = new Schema(
   {
     url: { type: String, required: true },
-    publicId: { type: String, index: true },
+    publicId: { type: String },
     alt: { type: String, maxlength: 200 },
     caption: { type: String, maxlength: 300 },
     entityType: {

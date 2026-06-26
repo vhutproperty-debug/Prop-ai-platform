@@ -24,28 +24,44 @@ import {
  * Ensures all production indexes are created in MongoDB.
  * Call after mongoose.connect() — Mongoose syncs index definitions.
  */
+async function syncModelIndexes(model: {
+  syncIndexes: () => Promise<string[]>;
+  collection: { dropIndex: (name: string) => Promise<unknown> };
+}) {
+  try {
+    await model.syncIndexes();
+  } catch (error) {
+    const code = (error as { code?: number }).code;
+    if (code !== 86) throw error;
+    await model.collection.dropIndex("publicId_1").catch(() => undefined);
+    await model.syncIndexes();
+  }
+}
+
 export async function ensureIndexes(): Promise<void> {
-  await Promise.all([
-    Builder.syncIndexes(),
-    Project.syncIndexes(),
-    Configuration.syncIndexes(),
-    Amenity.syncIndexes(),
-    FAQ.syncIndexes(),
-    Location.syncIndexes(),
-    Lead.syncIndexes(),
-    Image.syncIndexes(),
-    ImportJob.syncIndexes(),
-    ImportRecord.syncIndexes(),
-    ImportLog.syncIndexes(),
-    ContentArticle.syncIndexes(),
-    ContentVersion.syncIndexes(),
-    ContentJob.syncIndexes(),
-    ContentCampaign.syncIndexes(),
-    ContentAuditLog.syncIndexes(),
-    ContentKnowledgePack.syncIndexes(),
-    ContentPerformance.syncIndexes(),
-    SiteSettings.syncIndexes(),
-  ]);
+  const models = [
+    Builder,
+    Project,
+    Configuration,
+    Amenity,
+    FAQ,
+    Location,
+    Lead,
+    Image,
+    ImportJob,
+    ImportRecord,
+    ImportLog,
+    ContentArticle,
+    ContentVersion,
+    ContentJob,
+    ContentCampaign,
+    ContentAuditLog,
+    ContentKnowledgePack,
+    ContentPerformance,
+    SiteSettings,
+  ];
+
+  await Promise.all(models.map((m) => syncModelIndexes(m)));
 }
 
 export const INDEX_DOCUMENTATION = {

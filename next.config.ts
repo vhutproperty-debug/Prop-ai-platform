@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import "./lib/db/setup-dns";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["mongoose"],

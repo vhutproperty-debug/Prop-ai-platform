@@ -1,3 +1,4 @@
+import "@/lib/db/setup-dns";
 import mongoose from "mongoose";
 import { connectDB } from "@/lib/db/mongodb";
 import { dbLogger } from "@/lib/db/logger";

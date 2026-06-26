@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { loadEnvFiles } from "@/lib/env/load-env-file";
 
 const mongoUriSchema = z
   .string()
@@ -7,6 +8,8 @@ const mongoUriSchema = z
     (uri) => /^mongodb(\+srv)?:\/\//.test(uri),
     "MONGODB_URI must start with mongodb:// or mongodb+srv://"
   );
+
+const emptyToUndefined = (val: unknown) => (val === "" ? undefined : val);
 
 const envSchema = z.object({
   NODE_ENV: z
@@ -25,7 +28,7 @@ const envSchema = z.object({
     .string()
     .url("NEXT_PUBLIC_APP_URL must be a valid URL")
     .default("http://localhost:3000"),
-  CRM_WEBHOOK_URL: z.string().url().optional(),
+  CRM_WEBHOOK_URL: z.preprocess(emptyToUndefined, z.string().url().optional()),
   FIRECRAWL_API_KEY: z.string().optional(),
 });
 
@@ -48,6 +51,10 @@ function formatFieldErrors(errors: Record<string, string[]>): string {
 }
 
 function parseEnv(): Env {
+  if (typeof window === "undefined" && !process.env.MONGODB_URI) {
+    loadEnvFiles();
+  }
+
   const result = envSchema.safeParse(process.env);
 
   if (result.success) {
