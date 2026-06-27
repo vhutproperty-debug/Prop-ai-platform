@@ -20,7 +20,7 @@ export const SUPPORTED_BUILDERS: BuilderCrawlConfig[] = [
     name: "Lodha",
     website: "https://www.lodhagroup.com",
     projectsListingUrl: "https://www.lodhagroup.com/projects",
-    projectLinkPattern: /\/projects\/[a-z0-9-]+/i,
+    projectLinkPattern: /\/projects\/[^/]+\/[a-z0-9-]+(?:\/|$)/i,
   },
   {
     slug: "rustomjee",

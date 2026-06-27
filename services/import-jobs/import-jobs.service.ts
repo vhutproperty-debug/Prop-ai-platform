@@ -8,6 +8,12 @@ import { ImportRecord } from "@/models/ImportRecord";
 import { ImportLog } from "@/models/ImportLog";
 import { firecrawlService } from "@/services/firecrawl/firecrawl.service";
 import { extractionService } from "@/services/extraction/extraction.service";
+import {
+  dedupeCanonicalProjectUrls,
+  isLikelyProjectDetailUrl,
+  resolveCanonicalProjectUrl,
+  selectPrimaryProjectUrl,
+} from "@/services/extraction/project-url.utils";
 import { normalizationService } from "@/services/normalization/normalization.service";
 import {
   deduplicationService,
@@ -45,20 +51,32 @@ async function processProjectUrl(
 ): Promise<{ created: boolean; updated: boolean; failed: boolean }> {
   const logger = createJobLogger("firecrawl", jobId);
   const started = Date.now();
+  const canonicalUrl = resolveCanonicalProjectUrl(url);
 
   try {
-    const scrape = await firecrawlService.scrapeUrl(url);
-    const facts = extractionService.extractFromProjectPage(scrape, builder);
-    const bundle = normalizationService.normalizeProject(facts, builder, url);
+    const scrape = await firecrawlService.scrapeUrl(canonicalUrl);
+    const extraction = extractionService.extractFromProjectPageWithReport(
+      scrape,
+      builder,
+      url
+    );
+    const facts = extraction.facts;
+    const bundle = normalizationService.normalizeProject(
+      facts,
+      builder,
+      canonicalUrl
+    );
 
     const validation = stagedBundleSchema.safeParse(bundle);
     if (!validation.success) {
-      await writeLog(jobId, "error", `Validation failed for ${url}`, {
-        url,
+      await writeLog(jobId, "error", `Validation failed for ${canonicalUrl}`, {
+        url: canonicalUrl,
+        originalUrl: url,
         status: "validation_failed",
         durationMs: Date.now() - started,
         projectSlug: bundle.project.slug,
         builderSlug: builder.slug,
+        extractionReport: extraction.report,
         errors: validation.error.flatten(),
       });
       return { created: false, updated: false, failed: true };
@@ -95,15 +113,18 @@ async function processProjectUrl(
       logLevel,
       `${classification.recordType}: ${bundle.project.projectName}`,
       {
-        url,
+        url: canonicalUrl,
+        originalUrl: url !== canonicalUrl ? url : undefined,
         status: classification.recordType,
         durationMs: Date.now() - started,
         projectSlug: bundle.project.slug,
         builderSlug: builder.slug,
         recordType: classification.recordType,
         title: facts.projectName,
+        reraNumber: facts.reraNumber,
         imageCount: facts.galleryImages.length + (facts.coverImage ? 1 : 0),
         linkCount: scrape.links?.length ?? 0,
+        extractionReport: extraction.report,
       }
     );
 
@@ -210,7 +231,11 @@ export const importJobsService = {
         );
       }
 
-      projectUrls = [...new Set(projectUrls)].slice(0, maxProjects);
+      projectUrls = dedupeCanonicalProjectUrls(
+        projectUrls.filter((candidate) =>
+          isLikelyProjectDetailUrl(candidate, builder.slug)
+        )
+      ).slice(0, maxProjects);
 
       await writeLog(jobId, "success", "Listing page crawled", {
         url: builder.projectsListingUrl,
@@ -375,12 +400,19 @@ export const importJobsService = {
           listingScrape,
           builder
         );
-        projectUrl = listing.projectUrls[0];
+        projectUrl = selectPrimaryProjectUrl(listing.projectUrls, builder.slug);
 
         if (!projectUrl) {
           const mapped = await firecrawlService.mapLinks(builder.website, 200);
-          projectUrl = mapped.find((u) => builder.projectLinkPattern?.test(u));
+          projectUrl = selectPrimaryProjectUrl(
+            mapped.filter((u) => builder.projectLinkPattern?.test(u)),
+            builder.slug
+          );
         }
+      }
+
+      if (projectUrl) {
+        projectUrl = resolveCanonicalProjectUrl(projectUrl);
       }
 
       if (!projectUrl) {

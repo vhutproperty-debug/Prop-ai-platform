@@ -2,18 +2,34 @@ import type {
   ExtractedBuilderFacts,
   ExtractedConfiguration,
   ExtractedProjectFacts,
+  ExtractionFieldReport,
+  ProjectPageExtractionResult,
 } from "@/types/firecrawl-import";
 import {
   generateProjectSlug,
 } from "@/lib/normalizers/helpers";
+import {
+  dedupeCanonicalProjectUrls,
+  inferLocalityFromUrl,
+  inferProjectSlugFromUrl,
+  isLikelyProjectDetailUrl,
+  resolveCanonicalProjectUrl,
+  selectPrimaryProjectUrl,
+} from "@/services/extraction/project-url.utils";
 
-const RERA_PATTERN =
-  /(?:RERA|MahaRERA|MAHARERA)[:\s#]*([A-Z]{2,4}\/[A-Z]+\/\d{4}\/\d+(?:\/[A-Z0-9]+)?)/gi;
+const RERA_SLASH_PATTERN =
+  /(?:RERA|MahaRERA|MAHARERA)[:\s#-]*([A-Z]{2,4}\/[A-Z]+\/\d{4}\/\d+(?:\/[A-Z0-9]+)?)/gi;
+const RERA_P_SERIES_PATTERN = /\b(P\d{11,})\b/gi;
+const RERA_BLOCK_PATTERN =
+  /MahaRERA registration numbers?:?\s*([A-Z0-9,\s|]+)/i;
 const BHK_PATTERN = /(\d)\s*(?:BHK|bhk)/gi;
 const SQFT_PATTERN = /(\d{2,5})\s*(?:sq\.?\s*ft|sqft|square\s*feet)/gi;
-const PRICE_CR_PATTERN = /(?:₹|Rs\.?|INR)\s*([\d,.]+)\s*(?:Cr|CR|crore)/gi;
-const PRICE_LAKH_PATTERN = /(?:₹|Rs\.?|INR)\s*([\d,.]+)\s*(?:Lakh|Lac|L)/gi;
-const PRICE_PER_SQFT = /(?:₹|Rs\.?)\s*([\d,]+)\s*(?:per|\/)\s*sq\.?\s*ft/gi;
+const PRICE_CR_PATTERN =
+  /(?:₹|Rs\.?\s*|INR\s*)([\d,.]+)\s*(?:Cr|CR|crore)\b/gi;
+const PRICE_LAKH_PATTERN =
+  /(?:₹|Rs\.?\s*|INR\s*)([\d,.]+)\s*(?:Lakh|Lac|L)\b/gi;
+const PRICE_PER_SQFT =
+  /(?:₹|Rs\.?\s*)([\d,]+)\s*(?:per|\/)\s*sq\.?\s*ft\b/gi;
 const POSSESSION_PATTERN =
   /(?:possession|handover|completion)[:\s]*([A-Za-z]+\s*\d{4}|\d{1,2}[/-]\d{4}|\d{4})/gi;
 const LAUNCH_PATTERN =
@@ -87,27 +103,164 @@ function resolveUrl(href: string, base: string): string | undefined {
   }
 }
 
-function inferProjectName(
-  url: string,
-  metadata?: Record<string, unknown>
-): string {
-  const title = (metadata?.title as string) ?? "";
-  if (title) {
-    const cleaned = title
-      .replace(/\s*[-|]\s*.+$/, "")
-      .replace(/(?:Lodha|Godrej|Oberoi|Rustomjee|Kalpataru|Runwal|Sunteck|Shapoorji).*/i, "")
-      .trim();
-    if (cleaned.length >= 3) return cleaned;
-  }
-  const segments = new URL(url).pathname.split("/").filter(Boolean);
-  const last = segments[segments.length - 1] ?? "project";
-  return last.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+function reportField(
+  field: string,
+  value: string | number | boolean | string[] | null | undefined,
+  source: string
+): ExtractionFieldReport {
+  const normalized =
+    value === undefined || value === null || value === ""
+      ? null
+      : Array.isArray(value)
+        ? value.length
+          ? value
+          : null
+        : value;
+  return {
+    field,
+    value: normalized,
+    source,
+    present: normalized !== null && !(Array.isArray(normalized) && !normalized.length),
+  };
 }
 
-function inferLocation(text: string): string | undefined {
+function cleanProjectTitle(value: string): string {
+  return value
+    .replace(/\s*(?:[-–|]\s*(?:Lodha|Godrej|Oberoi|Rustomjee|Kalpataru|Runwal|Sunteck|Shapoorji).*)$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function inferProjectName(
+  url: string,
+  metadata?: Record<string, unknown>,
+  content?: string
+): { name: string; source: string } {
+  const title = String(metadata?.title ?? metadata?.ogTitle ?? "").trim();
+  const canonicalUrl = resolveCanonicalProjectUrl(url);
+
+  if (title) {
+    const colonSubpage = title.match(
+      /^(.+?)\s+(?:Gallery|Amenities|Location|Plans|Prices|About|Floor Plan)\b/i
+    );
+    if (colonSubpage?.[1]) {
+      const name = cleanProjectTitle(colonSubpage[1]);
+      if (name.length >= 3) return { name, source: "metadata.title.subpage-prefix" };
+    }
+
+    const dashSplit = title.match(/^(.+?)\s*[-–]\s+/);
+    if (dashSplit?.[1]) {
+      const name = cleanProjectTitle(dashSplit[1]);
+      if (name.length >= 3 && !/^(gallery|amenities|location|plans|404)$/i.test(name)) {
+        return { name, source: "metadata.title.before-dash" };
+      }
+    }
+
+    const pipeSplit = title.split("|")[0]?.trim();
+    if (pipeSplit && pipeSplit.length >= 3) {
+      const name = cleanProjectTitle(pipeSplit.split(/[-–]/)[0]?.trim() ?? pipeSplit);
+      if (name.length >= 3 && !/^(gallery|404)$/i.test(name)) {
+        return { name, source: "metadata.title.before-pipe" };
+      }
+    }
+  }
+
+  if (content) {
+    const heading = content.match(/^#\s+(.+)$/m)?.[1]?.trim();
+    if (heading && heading.length >= 3 && !/^(gallery|amenities|location|plans)$/i.test(heading)) {
+      return { name: heading, source: "markdown.h1" };
+    }
+
+    const blockedEarlyHeading =
+      /^(?:click here|rera|about|amenities|gallery|location|plans|prices|residential|commercial|mumbai)$/i;
+
+    const earlyName = content
+      .split("\n")
+      .map((line) => line.trim())
+      .find(
+        (line) =>
+          line.length >= 3 &&
+          line.length <= 60 &&
+          /^[A-Z][A-Za-z0-9&.'\s-]+$/.test(line) &&
+          !blockedEarlyHeading.test(line) &&
+          !/^\d+$/.test(line)
+      );
+    if (earlyName) {
+      return { name: earlyName, source: "markdown.early-heading" };
+    }
+  }
+
+  const slug = inferProjectSlugFromUrl(canonicalUrl);
+  if (slug) {
+    return {
+      name: slug.replace(/-/g, " ").replace(/\b\w/g, (char) => char.toUpperCase()),
+      source: "url.canonical-slug",
+    };
+  }
+
+  const segments = new URL(canonicalUrl).pathname.split("/").filter(Boolean);
+  const last = segments[segments.length - 1] ?? "project";
+  return {
+    name: last.replace(/-/g, " ").replace(/\b\w/g, (char) => char.toUpperCase()),
+    source: "url.last-segment",
+  };
+}
+
+function inferLocation(
+  text: string,
+  url: string,
+  metadata?: Record<string, unknown>
+): { value?: string; source: string } {
+  const title = String(metadata?.title ?? "");
+  const titleMatch = title.match(/\b(?:in|at|near)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})/);
+  if (titleMatch?.[1]) {
+    return { value: titleMatch[1].trim(), source: "metadata.title.locality" };
+  }
+
+  const urlLocality = inferLocalityFromUrl(url);
+  if (urlLocality) {
+    return { value: urlLocality, source: "url.property-in-segment" };
+  }
+
   const mumbaiAreas =
-    /(?:at|in|located\s*(?:at|in))\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,3})/i;
-  return firstMatch(mumbaiAreas, text);
+    /(?:at|in|located\s*(?:at|in)|address)[:\s]*([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,3})/i;
+  const match = firstMatch(mumbaiAreas, text);
+  if (match) return { value: match, source: "markdown.location-phrase" };
+
+  if (/\bMumbai\b/i.test(text)) {
+    return { value: "Mumbai", source: "markdown.city" };
+  }
+
+  return { source: "not-found" };
+}
+
+function extractReraNumbers(text: string): { values: string[]; source: string } {
+  const numbers = new Set<string>();
+
+  const block = text.match(RERA_BLOCK_PATTERN);
+  if (block?.[1]) {
+    for (const match of block[1].matchAll(RERA_P_SERIES_PATTERN)) {
+      numbers.add(match[1].toUpperCase());
+    }
+  }
+
+  for (const match of text.matchAll(RERA_P_SERIES_PATTERN)) {
+    numbers.add(match[1].toUpperCase());
+  }
+
+  for (const match of text.matchAll(RERA_SLASH_PATTERN)) {
+    if (match[1]) numbers.add(match[1].toUpperCase());
+  }
+
+  const values = [...numbers];
+  if (values.length) {
+    return {
+      values,
+      source: block?.[1] ? "markdown.maharera-block" : "markdown.rera-pattern",
+    };
+  }
+
+  return { values: [], source: "not-found" };
 }
 
 function extractConfigurations(text: string): ExtractedConfiguration[] {
@@ -253,7 +406,7 @@ function collectScrapeImages(input: {
   return [...urls];
 }
 
-export function parseProjectPage(input: {
+export function parseProjectPageWithReport(input: {
   url: string;
   markdown?: string;
   html?: string;
@@ -262,15 +415,21 @@ export function parseProjectPage(input: {
   images?: string[];
   builderName: string;
   builderWebsite: string;
-}): ExtractedProjectFacts {
+}): ProjectPageExtractionResult {
+  const canonicalUrl = resolveCanonicalProjectUrl(input.url);
   const content = [input.markdown, input.html].filter(Boolean).join("\n");
-  const projectName = inferProjectName(input.url, input.metadata);
+  const projectNameResult = inferProjectName(
+    canonicalUrl,
+    input.metadata,
+    input.markdown
+  );
+  const projectName = projectNameResult.name;
   const slug = generateProjectSlug(input.builderName, projectName);
   const prices = extractPrices(content);
   const configurations = extractConfigurations(content);
   const images = collectScrapeImages({
     content,
-    baseUrl: input.url,
+    baseUrl: canonicalUrl,
     images: input.images,
     links: input.links,
     metadata: input.metadata,
@@ -279,13 +438,16 @@ export function parseProjectPage(input: {
   const pdfRe = new RegExp(PDF_LINK.source, PDF_LINK.flags);
   let pdfMatch: RegExpExecArray | null;
   while ((pdfMatch = pdfRe.exec(content)) !== null) {
-    const resolved = resolveUrl(pdfMatch[1], input.url);
+    const resolved = resolveUrl(pdfMatch[1], canonicalUrl);
     if (resolved) pdfLinks.push(resolved);
   }
 
   const latLng = [...content.matchAll(LAT_LNG_PATTERN)][0];
   const amenities = extractAmenities(content);
   const flatAmenities = Object.values(amenities).flat();
+  const locationResult = inferLocation(content, canonicalUrl, input.metadata);
+  const reraResult = extractReraNumbers(content);
+  const reraNumber = reraResult.values.join(", ");
 
   configurations.forEach((config) => {
     const bhkKey = config.bhk ? `${config.bhk}bhk` : "";
@@ -299,12 +461,12 @@ export function parseProjectPage(input: {
     if (floorPdf) config.floorPlanPdf = floorPdf;
   });
 
-  return {
+  const facts: ExtractedProjectFacts = {
     projectName,
     slug,
     builderName: input.builderName,
-    microMarket: inferLocation(content),
-    location: inferLocation(content),
+    microMarket: locationResult.value,
+    location: locationResult.value,
     latitude: latLng ? parseFloat(latLng[1]) : undefined,
     longitude: latLng ? parseFloat(latLng[2]) : undefined,
     status: inferStatus(content),
@@ -315,7 +477,7 @@ export function parseProjectPage(input: {
     )
       ? "under_construction"
       : undefined,
-    reraNumber: allMatches(RERA_PATTERN, content)[0],
+    reraNumber: reraNumber || undefined,
     minPrice: prices.minPrice,
     maxPrice: prices.maxPrice,
     pricePerSqFt: prices.pricePerSqFt,
@@ -333,8 +495,95 @@ export function parseProjectPage(input: {
     similarProjects: [],
     competitorProjects: [],
     faqs: extractFaqs(content),
+    sourceUrl: canonicalUrl,
+  };
+
+  const report: ExtractionFieldReport[] = [
+    reportField("projectName", facts.projectName, projectNameResult.source),
+    reportField("slug", facts.slug, "derived.projectName"),
+    reportField("builderName", facts.builderName, "input.builderName"),
+    reportField("location", facts.location ?? null, locationResult.source),
+    reportField("microMarket", facts.microMarket ?? null, locationResult.source),
+    reportField("reraNumber", facts.reraNumber ?? null, reraResult.source),
+    reportField(
+      "minPrice",
+      facts.minPrice ?? null,
+      facts.minPrice ? "markdown.price-pattern" : "not-found"
+    ),
+    reportField(
+      "maxPrice",
+      facts.maxPrice ?? null,
+      facts.maxPrice ? "markdown.price-pattern" : "not-found"
+    ),
+    reportField(
+      "pricePerSqFt",
+      facts.pricePerSqFt ?? null,
+      facts.pricePerSqFt ? "markdown.price-per-sqft" : "not-found"
+    ),
+    reportField(
+      "configurations",
+      facts.configurations.map((c) => c.configurationName),
+      facts.configurations.length ? "markdown.bhk-pattern" : "fallback.default-config"
+    ),
+    reportField(
+      "amenities",
+      flatAmenities,
+      flatAmenities.length ? "markdown.amenity-keywords" : "not-found"
+    ),
+    reportField(
+      "coverImage",
+      facts.coverImage ?? null,
+      facts.coverImage ? "scrape.images|markdown" : "not-found"
+    ),
+    reportField(
+      "galleryImages",
+      facts.galleryImages,
+      facts.galleryImages.length ? "scrape.images|markdown|links" : "not-found"
+    ),
+    reportField(
+      "brochurePdf",
+      facts.brochurePdf ?? null,
+      facts.brochurePdf ? "markdown.pdf-link" : "not-found"
+    ),
+    reportField("status", facts.status ?? null, "markdown.status-keywords"),
+    reportField(
+      "possessionDate",
+      facts.possessionDate ?? null,
+      facts.possessionDate ? "markdown.possession-pattern" : "not-found"
+    ),
+    reportField(
+      "metadata.title",
+      String(input.metadata?.title ?? ""),
+      "scrape.metadata.title"
+    ),
+    reportField(
+      "metadata.description",
+      String(input.metadata?.description ?? input.metadata?.ogDescription ?? ""),
+      "scrape.metadata.description"
+    ),
+    reportField("sourceUrl", facts.sourceUrl, "url.canonical"),
+    reportField("originalUrl", input.url, "input.url"),
+  ];
+
+  return {
+    facts,
+    report,
+    canonicalUrl,
     sourceUrl: input.url,
   };
+}
+
+export function parseProjectPage(input: {
+  url: string;
+  markdown?: string;
+  html?: string;
+  metadata?: Record<string, unknown>;
+  links?: string[];
+  images?: string[];
+  builderName: string;
+  builderWebsite: string;
+}): ExtractedProjectFacts {
+  return parseProjectPageWithReport(input).facts;
 }
 
 export function parseBuilderListingPage(input: {
@@ -345,16 +594,24 @@ export function parseBuilderListingPage(input: {
   builderName: string;
   builderWebsite: string;
   projectLinkPattern?: RegExp;
+  builderSlug?: string;
 }): { builder: ExtractedBuilderFacts; projectUrls: string[] } {
   const content = [input.markdown, input.html].filter(Boolean).join("\n");
   const pattern = input.projectLinkPattern ?? /\/projects?\//i;
 
-  const projectUrls = (input.links ?? [])
+  const rawUrls = (input.links ?? [])
     .map((link) => resolveUrl(link, input.url))
     .filter((url): url is string => Boolean(url))
     .filter((url) => pattern.test(url) && url !== input.url);
 
-  const uniqueUrls = [...new Set(projectUrls)];
+  const filtered = rawUrls.filter((url) =>
+    isLikelyProjectDetailUrl(url, input.builderSlug)
+  );
+  const canonicalUrls = dedupeCanonicalProjectUrls(filtered);
+  const primary = selectPrimaryProjectUrl(rawUrls, input.builderSlug);
+  const projectUrls = primary
+    ? [primary, ...canonicalUrls.filter((url) => url !== primary)]
+    : canonicalUrls;
 
   const yearMatch = content.match(/(?:established|since|founded)[:\s]*(\d{4})/i);
   const completedMatch = content.match(/(\d+)\+?\s*(?:completed|delivered)\s*projects/i);
@@ -374,7 +631,7 @@ export function parseBuilderListingPage(input: {
       ongoingProjects: ongoingMatch ? parseInt(ongoingMatch[1], 10) : undefined,
       website: input.builderWebsite,
     },
-    projectUrls: uniqueUrls,
+    projectUrls,
   };
 }
 

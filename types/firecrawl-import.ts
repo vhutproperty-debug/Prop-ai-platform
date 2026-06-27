@@ -60,6 +60,20 @@ export interface ExtractedProjectFacts {
   sourceUrl: string;
 }
 
+export interface ExtractionFieldReport {
+  field: string;
+  value: string | number | boolean | string[] | null;
+  source: string;
+  present: boolean;
+}
+
+export interface ProjectPageExtractionResult {
+  facts: ExtractedProjectFacts;
+  report: ExtractionFieldReport[];
+  canonicalUrl: string;
+  sourceUrl: string;
+}
+
 export interface ImportExtensions {
   builder?: ExtractedBuilderFacts;
   floorPlans?: Array<{
