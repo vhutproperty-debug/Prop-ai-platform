@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import {
   Copy,
+  Download,
   FileJson,
   FileSpreadsheet,
   FileText,
@@ -14,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ProjectIntelligenceMediaGallery } from "@/components/admin/project-intelligence/project-intelligence-media-gallery";
 import {
   downloadBlob,
   exportProjectIntelligenceExcel,
@@ -21,6 +23,13 @@ import {
   openProjectIntelligencePdf,
   slugifyFilename,
 } from "@/lib/project-intelligence/export-client";
+import {
+  downloadProjectBrochure,
+  downloadProjectFloorPlans,
+  downloadProjectImages,
+  getReportMediaCounts,
+} from "@/lib/project-intelligence/media-download-client";
+import { normalizeProjectIntelligenceReport } from "@/lib/project-intelligence/report-normalizer";
 import type { ProjectIntelligenceReport } from "@/types/project-intelligence";
 
 type ExtractResponse = {
@@ -72,11 +81,23 @@ export function ProjectIntelligenceExtractor() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [savedId, setSavedId] = useState<string | null>(null);
+  const [downloadPending, setDownloadPending] = useState<string | null>(null);
 
   const filenameBase = useMemo(() => {
     const name = report?.project.projectName ?? "project-intelligence";
     return slugifyFilename(name) || "project-intelligence";
   }, [report]);
+
+  const mediaCounts = useMemo(
+    () => (report ? getReportMediaCounts(report) : { images: 0, floorPlans: 0, brochures: 0 }),
+    [report]
+  );
+
+  const normalizedReport = useMemo(
+    () => (report ? normalizeProjectIntelligenceReport(report) : null),
+    [report]
+  );
 
   const runExtract = useCallback(async (refresh = false) => {
     if (!url.trim()) {
@@ -99,6 +120,7 @@ export function ProjectIntelligenceExtractor() {
       }
       setReport(json.data);
       setPreviewOpen(true);
+      setSavedId(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Extraction failed");
     } finally {
@@ -126,6 +148,7 @@ export function ProjectIntelligenceExtractor() {
         throw new Error(json.error ?? "Save failed");
       }
       setSaveMessage(`Saved to project_intelligence (${json.data.id})`);
+      setSavedId(json.data.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
     } finally {
@@ -152,6 +175,58 @@ export function ProjectIntelligenceExtractor() {
   function handleExportPdf() {
     if (!report) return;
     openProjectIntelligencePdf(report);
+  }
+
+  async function runDownload(
+    key: string,
+    fn: () => Promise<void>
+  ) {
+    setDownloadPending(key);
+    setError(null);
+    try {
+      await fn();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Download failed");
+    } finally {
+      setDownloadPending(null);
+    }
+  }
+
+  async function handleDownloadImages() {
+    if (!report) return;
+    if (savedId) {
+      const response = await fetch(
+        `/api/admin/project-intelligence/${savedId}/download-images`
+      );
+      if (!response.ok) {
+        const json = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(json?.error ?? "Image download failed");
+      }
+      downloadBlob(await response.blob(), `${filenameBase}-images.zip`);
+      return;
+    }
+    await downloadProjectImages(report, filenameBase);
+  }
+
+  async function handleDownloadFloorPlans() {
+    if (!report) return;
+    if (savedId) {
+      const response = await fetch(
+        `/api/admin/project-intelligence/${savedId}/download-floorplans`
+      );
+      if (!response.ok) {
+        const json = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(json?.error ?? "Floor plan download failed");
+      }
+      downloadBlob(await response.blob(), `${filenameBase}-floorplans.zip`);
+      return;
+    }
+    await downloadProjectFloorPlans(report, filenameBase);
+  }
+
+  async function handleDownloadBrochure() {
+    if (!report) return;
+    await downloadProjectBrochure(report, filenameBase, savedId);
   }
 
   return (
@@ -233,6 +308,63 @@ export function ProjectIntelligenceExtractor() {
               <FileText className="h-4 w-4" />
               Export PDF
             </Button>
+            {mediaCounts.images > 0 && (
+              <Button
+                variant="outline"
+                disabled={!report || downloadPending === "images"}
+                onClick={() => runDownload("images", handleDownloadImages)}
+              >
+                {downloadPending === "images" ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Downloading…
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4" />
+                    Download Images
+                  </>
+                )}
+              </Button>
+            )}
+            {mediaCounts.floorPlans > 0 && (
+              <Button
+                variant="outline"
+                disabled={!report || downloadPending === "floorplans"}
+                onClick={() => runDownload("floorplans", handleDownloadFloorPlans)}
+              >
+                {downloadPending === "floorplans" ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Downloading…
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4" />
+                    Download Floor Plans
+                  </>
+                )}
+              </Button>
+            )}
+            {mediaCounts.brochures > 0 && (
+              <Button
+                variant="outline"
+                disabled={!report || downloadPending === "brochure"}
+                onClick={() => runDownload("brochure", handleDownloadBrochure)}
+              >
+                {downloadPending === "brochure" ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Downloading…
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4" />
+                    Download Brochure
+                  </>
+                )}
+              </Button>
+            )}
             <Button variant="outline" onClick={handleCopy} disabled={!report}>
               <Copy className="h-4 w-4" />
               Copy
@@ -260,6 +392,9 @@ export function ProjectIntelligenceExtractor() {
               </Badge>
               <Badge variant="outline">{report.meta.imageCount} images</Badge>
               <Badge variant="outline">{report.meta.floorPlanCount} floor plans</Badge>
+              {mediaCounts.brochures > 0 && (
+                <Badge variant="outline">{mediaCounts.brochures} brochures</Badge>
+              )}
               <Badge variant="outline">
                 Confidence {Math.round(report.meta.extractionConfidence * 100)}%
               </Badge>
@@ -395,7 +530,10 @@ export function ProjectIntelligenceExtractor() {
           </Section>
 
           <Section title={`Media (${report.media.length})`}>
-            <p>{report.media.length} assets · {report.downloads.length} downloads</p>
+            <p>
+              {mediaCounts.images} gallery images · {mediaCounts.floorPlans} floor plans ·{" "}
+              {mediaCounts.brochures} brochures · {report.downloads.length} other downloads
+            </p>
             {report.downloads.length > 0 && (
               <ul className="mt-2 list-disc pl-5">
                 {report.downloads.map((d) => (
@@ -406,6 +544,15 @@ export function ProjectIntelligenceExtractor() {
                   </li>
                 ))}
               </ul>
+            )}
+          </Section>
+
+          <Section title={`Image Gallery (${mediaCounts.images})`}>
+            {normalizedReport && (
+              <ProjectIntelligenceMediaGallery
+                report={normalizedReport}
+                filenameBase={filenameBase}
+              />
             )}
           </Section>
 

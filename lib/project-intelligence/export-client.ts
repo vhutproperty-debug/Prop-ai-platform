@@ -1,4 +1,5 @@
 import * as XLSX from "xlsx";
+import { normalizeProjectIntelligenceReport } from "@/lib/project-intelligence/report-normalizer";
 import type { ProjectIntelligenceReport } from "@/types/project-intelligence";
 
 function sheetFromRows(name: string, rows: Record<string, unknown>[]) {
@@ -13,6 +14,7 @@ export function exportProjectIntelligenceJson(report: ProjectIntelligenceReport)
 }
 
 export function exportProjectIntelligenceExcel(report: ProjectIntelligenceReport): Blob {
+  const normalized = normalizeProjectIntelligenceReport(report);
   const wb = XLSX.utils.book_new();
 
   const sheets = [
@@ -86,27 +88,45 @@ export function exportProjectIntelligenceExcel(report: ProjectIntelligenceReport
     ),
     sheetFromRows(
       "06 Images",
-      report.media.map((m) => ({
-        type: m.type,
-        url: m.url,
-        label: m.label,
-        sourceUrl: m.sourceUrl,
-      }))
+      normalized.images.length
+        ? normalized.images.map((m) => ({
+            type: m.type,
+            filename: m.filename,
+            url: m.url,
+            source: m.source,
+          }))
+        : report.media.map((m) => ({
+            type: m.type,
+            url: m.url,
+            label: m.label,
+            sourceUrl: m.sourceUrl,
+          }))
     ),
     sheetFromRows(
       "07 Floor Plans",
-      report.media
-        .filter((m) => m.type === "floor_plan" || m.type === "master_plan")
-        .map((m) => ({ type: m.type, url: m.url, sourceUrl: m.sourceUrl }))
+      normalized.floorPlans.length
+        ? normalized.floorPlans.map((m) => ({
+            type: m.type,
+            filename: m.filename,
+            url: m.url,
+            source: m.source,
+          }))
+        : report.media
+            .filter((m) => m.type === "floor_plan" || m.type === "master_plan")
+            .map((m) => ({ type: m.type, url: m.url, sourceUrl: m.sourceUrl }))
     ),
-    sheetFromRows(
-      "08 Downloads",
-      report.downloads.map((d) => ({
+    sheetFromRows("08 Downloads", [
+      ...report.downloads.map((d) => ({
         label: d.label,
         type: d.type,
         url: d.url,
-      }))
-    ),
+      })),
+      ...normalized.brochures.map((b) => ({
+        label: b.filename,
+        type: "brochure",
+        url: b.url,
+      })),
+    ]),
     sheetFromRows("09 AI Summary", [
       { section: "Project Overview", content: report.aiSummary.projectOverview },
       ...report.aiSummary.keyHighlights.map((h, i) => ({

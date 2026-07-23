@@ -1,6 +1,6 @@
-/** Standalone admin tool — Project Intelligence Extractor (schema v1). */
+/** Standalone admin tool — Project Intelligence Extractor (schema v2). */
 
-export const PROJECT_INTELLIGENCE_SCHEMA_VERSION = 1;
+export const PROJECT_INTELLIGENCE_SCHEMA_VERSION = 2;
 
 export interface ProjectIntelligenceMeta {
   schemaVersion: number;
@@ -85,6 +85,32 @@ export interface ProjectIntelligenceLocationPoi {
   sourceUrl?: string;
 }
 
+export interface ProjectIntelligenceImageAsset {
+  url: string;
+  filename: string;
+  mimeType?: string;
+  source?: string;
+  downloaded?: boolean;
+  width?: number;
+  height?: number;
+  type?: string;
+}
+
+export interface ProjectIntelligenceFloorPlanAsset {
+  url: string;
+  filename: string;
+  type?: string;
+  mimeType?: string;
+  source?: string;
+}
+
+export interface ProjectIntelligenceBrochureAsset {
+  url: string;
+  filename: string;
+  mimeType?: string;
+  source?: string;
+}
+
 export interface ProjectIntelligenceMediaItem {
   url: string;
   type:
@@ -134,6 +160,9 @@ export interface ProjectIntelligenceReport {
   amenities: string[];
   location: ProjectIntelligenceLocationPoi[];
   media: ProjectIntelligenceMediaItem[];
+  images: ProjectIntelligenceImageAsset[];
+  floorPlans: ProjectIntelligenceFloorPlanAsset[];
+  brochures: ProjectIntelligenceBrochureAsset[];
   downloads: ProjectIntelligenceDownloadLink[];
   videos: string[];
   virtualTours: string[];

@@ -8,6 +8,8 @@ import {
 import { parseProjectPageWithReport } from "@/services/extraction/parsers";
 import { SUPPORTED_BUILDERS } from "@/config/builders";
 import { PROJECT_INTELLIGENCE_SPEC_CATEGORIES } from "@/config/project-intelligence";
+import { filenameFromUrl, mimeTypeFromFilename, uniqueFilename } from "@/lib/project-intelligence/media-utils";
+import { buildStructuredMediaAssets } from "@/services/project-intelligence/media-classifier";
 import type {
   ProjectIntelligenceAiSummary,
   ProjectIntelligenceConfiguration,
@@ -69,46 +71,6 @@ function inferBuilderName(url: string, content: string): string | undefined {
   }
   const titleCase = host.split(".")[0];
   return titleCase ? titleCase.charAt(0).toUpperCase() + titleCase.slice(1) : undefined;
-}
-
-function classifyMediaUrl(url: string): ProjectIntelligenceMediaItem["type"] {
-  const lower = url.toLowerCase();
-  if (/floor.?plan|layout|bed/i.test(lower)) return "floor_plan";
-  if (/master.?plan|site.?plan/i.test(lower)) return "master_plan";
-  if (/amenit|pool|gym|club/i.test(lower)) return "amenity";
-  if (/exterior|facade|elevation/i.test(lower)) return "exterior";
-  if (/interior|living|kitchen|bedroom/i.test(lower)) return "interior";
-  if (/brochure|ebrochure/i.test(lower)) return "brochure";
-  return "project";
-}
-
-function extractMedia(scrapes: FirecrawlScrapeResult[]): ProjectIntelligenceMediaItem[] {
-  const items: ProjectIntelligenceMediaItem[] = [];
-  const seen = new Set<string>();
-
-  for (const scrape of scrapes) {
-    const candidates = [
-      ...(scrape.images ?? []),
-      ...(scrape.links ?? []).filter((l) => /\.(jpe?g|png|webp|gif|avif)(\?|$)/i.test(l)),
-    ];
-
-    for (const href of candidates) {
-      try {
-        const url = new URL(href, scrape.url).href;
-        if (seen.has(url) || /logo|icon|svg|close\.|enquire|call\.|chat\./i.test(url)) continue;
-        seen.add(url);
-        items.push({
-          url,
-          type: classifyMediaUrl(url),
-          sourceUrl: scrape.url,
-        });
-      } catch {
-        // skip invalid URLs
-      }
-    }
-  }
-
-  return items;
 }
 
 function extractDownloads(scrapes: FirecrawlScrapeResult[]): ProjectIntelligenceDownloadLink[] {
@@ -289,7 +251,7 @@ function buildFactualAiSummary(
   }
   if (!configurations.length) missing.push("Unit configurations");
   if (!amenities.length) missing.push("Amenities list");
-  if (!media.some((m) => m.type === "floor_plan")) missing.push("Floor plans");
+  if (!media.some((m) => m.type === "floor_plan" || m.type === "master_plan")) missing.push("Floor plans");
   if (!downloads.some((d) => d.type === "brochure")) missing.push("Brochure download");
 
   const presentFields = [
@@ -387,8 +349,102 @@ export function buildProjectIntelligenceReport(input: {
   });
 
   const merged = mergeContent(input.scrapes);
-  const media = extractMedia(input.scrapes);
+  const structuredMedia = buildStructuredMediaAssets(input.scrapes);
   const downloads = extractDownloads(input.scrapes);
+  const media = structuredMedia.media;
+  const images = structuredMedia.images;
+  const floorPlansList = [...structuredMedia.floorPlans];
+  const brochuresList = [...structuredMedia.brochures];
+
+  const usedBrochureUrls = new Set(brochuresList.map((b) => b.url));
+  const usedFloorPlanUrls = new Set(floorPlansList.map((f) => f.url));
+  const usedBrochureNames = new Set(brochuresList.map((b) => b.filename));
+  const usedFloorPlanNames = new Set(floorPlansList.map((f) => f.filename));
+  let brochureIndex = brochuresList.length + 1;
+  let floorPlanIndex = floorPlansList.length + 1;
+
+  for (const download of downloads) {
+    if (download.type === "brochure" && !usedBrochureUrls.has(download.url)) {
+      usedBrochureUrls.add(download.url);
+      const filename = uniqueFilename(
+        filenameFromUrl(download.url, `brochure-${brochureIndex}.pdf`),
+        usedBrochureNames
+      );
+      brochuresList.push({
+        url: download.url,
+        filename,
+        mimeType: "application/pdf",
+        source: download.url,
+      });
+      brochureIndex += 1;
+    }
+
+    if (
+      (download.type === "floor_plan" || download.type === "master_plan") &&
+      !usedFloorPlanUrls.has(download.url)
+    ) {
+      usedFloorPlanUrls.add(download.url);
+      const filename = uniqueFilename(
+        filenameFromUrl(download.url, `floorplan-${floorPlanIndex}.pdf`),
+        usedFloorPlanNames
+      );
+      floorPlansList.push({
+        url: download.url,
+        filename,
+        type: download.type,
+        mimeType: mimeTypeFromFilename(filename),
+        source: download.url,
+      });
+      floorPlanIndex += 1;
+    }
+  }
+
+  if (coreExtraction.facts.brochurePdf && !usedBrochureUrls.has(coreExtraction.facts.brochurePdf)) {
+    const filename = uniqueFilename(
+      filenameFromUrl(coreExtraction.facts.brochurePdf, "brochure.pdf"),
+      usedBrochureNames
+    );
+    brochuresList.push({
+      url: coreExtraction.facts.brochurePdf,
+      filename,
+      mimeType: "application/pdf",
+      source: canonicalUrl,
+    });
+  }
+
+  for (const config of coreExtraction.facts.configurations) {
+    if (config.floorPlanPdf && !usedFloorPlanUrls.has(config.floorPlanPdf)) {
+      usedFloorPlanUrls.add(config.floorPlanPdf);
+      const filename = uniqueFilename(
+        filenameFromUrl(config.floorPlanPdf, `floorplan-${floorPlanIndex}.pdf`),
+        usedFloorPlanNames
+      );
+      floorPlansList.push({
+        url: config.floorPlanPdf,
+        filename,
+        type: config.configurationName,
+        mimeType: "application/pdf",
+        source: canonicalUrl,
+      });
+      floorPlanIndex += 1;
+    }
+    if (config.floorPlanImage && !usedFloorPlanUrls.has(config.floorPlanImage)) {
+      usedFloorPlanUrls.add(config.floorPlanImage);
+      const filename = uniqueFilename(
+        filenameFromUrl(config.floorPlanImage, `floorplan-${floorPlanIndex}.jpg`),
+        usedFloorPlanNames
+      );
+      floorPlansList.push({
+        url: config.floorPlanImage,
+        filename,
+        type: config.configurationName,
+        mimeType: mimeTypeFromFilename(filename),
+        source: canonicalUrl,
+      });
+      floorPlanIndex += 1;
+    }
+  }
+
   const specifications = extractSpecifications(input.scrapes);
   const updates = extractUpdates(input.scrapes);
 
@@ -462,7 +518,7 @@ export function buildProjectIntelligenceReport(input: {
   const phones = [...merged.matchAll(PHONE_PATTERN)].map((m) => m[0]);
   const emails = [...merged.matchAll(EMAIL_PATTERN)].map((m) => m[0]);
 
-  const floorPlanCount = media.filter((m) => m.type === "floor_plan").length;
+  const floorPlanCount = floorPlansList.length;
 
   const aiSummary = buildFactualAiSummary(
     project,
@@ -483,7 +539,7 @@ export function buildProjectIntelligenceReport(input: {
       crawlStatus: input.crawlStatus,
       pagesCrawled: input.scrapes.length,
       pagesAttempted: input.scrapes.map((s) => s.url),
-      imageCount: media.length,
+      imageCount: images.length,
       floorPlanCount,
       extractionConfidence: aiSummary.confidenceScore,
       firecrawlConfigured: input.firecrawlConfigured,
@@ -498,6 +554,9 @@ export function buildProjectIntelligenceReport(input: {
     amenities: [...new Set(amenitiesFlat.map((a) => a.trim()))].filter(Boolean),
     location: locationFromParser,
     media,
+    images,
+    floorPlans: floorPlansList,
+    brochures: brochuresList,
     downloads,
     videos: [...new Set(videos)],
     virtualTours: [...new Set(virtualTours)],
