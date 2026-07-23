@@ -18,6 +18,7 @@
     "verify:phase-75": "node --require ./scripts/setup-dns.cjs ./node_modules/tsx/dist/cli.mjs scripts/verify-phase-75.mjs",
     "verify:firecrawl": "node --require ./scripts/setup-dns.cjs ./node_modules/tsx/dist/cli.mjs scripts/verify-firecrawl-import.mjs",
     "verify:project-intelligence": "node --require ./scripts/setup-dns.cjs ./node_modules/tsx/dist/cli.mjs scripts/verify-project-intelligence.mjs",
+    "sync:vercel-env": "node --require ./scripts/setup-dns.cjs ./node_modules/tsx/dist/cli.mjs scripts/sync-vercel-env.mjs",
     "verify:responsive": "node scripts/verify-responsive.mjs"
   },
   "dependencies": {
