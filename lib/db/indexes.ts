@@ -19,6 +19,7 @@ import {
   Location,
   Project,
   SiteSettings,
+  ProjectIntelligence,
 } from "@/models";
 
 /**
@@ -61,6 +62,7 @@ export async function ensureIndexes(): Promise<void> {
     ContentPerformance,
     NearbyPlace,
     SiteSettings,
+    ProjectIntelligence,
   ];
 
   await Promise.all(models.map((m) => syncModelIndexes(m)));
@@ -151,5 +153,12 @@ export const INDEX_DOCUMENTATION = {
     "projectId + type + isActive",
     "locationId + type + isActive",
     "text: name",
+  ],
+  ProjectIntelligence: [
+    "sourceUrl",
+    "canonicalUrl + createdAt",
+    "schemaVersion",
+    "createdBy",
+    "createdAt",
   ],
 } as const;

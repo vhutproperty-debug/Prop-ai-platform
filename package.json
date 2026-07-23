@@ -17,6 +17,7 @@
     "verify:phase-74": "node --require ./scripts/setup-dns.cjs ./node_modules/tsx/dist/cli.mjs scripts/verify-phase-74.mjs",
     "verify:phase-75": "node --require ./scripts/setup-dns.cjs ./node_modules/tsx/dist/cli.mjs scripts/verify-phase-75.mjs",
     "verify:firecrawl": "node --require ./scripts/setup-dns.cjs ./node_modules/tsx/dist/cli.mjs scripts/verify-firecrawl-import.mjs",
+    "verify:project-intelligence": "node --require ./scripts/setup-dns.cjs ./node_modules/tsx/dist/cli.mjs scripts/verify-project-intelligence.mjs",
     "verify:responsive": "node scripts/verify-responsive.mjs"
   },
   "dependencies": {
@@ -35,6 +36,7 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "tailwind-merge": "^3.6.0",
+    "xlsx": "^0.18.5",
     "zod": "^4.4.3"
   },
   "devDependencies": {
